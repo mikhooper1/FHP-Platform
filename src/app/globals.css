@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Barlow+Condensed:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #FAF5EE;
+  --cream2: #F2EBE0;
+  --cream3: #E6DDD1;
+  --cream4: #CEC4B6;
+  --orange: #E8841A;
+  --orange-d: #C46A0C;
+  --orange-t: rgba(232, 132, 26, 0.08);
+  --ink: #1C1814;
+  --ink2: #4A4238;
+  --ink3: #8C8178;
+  --ink4: #B8B0A6;
+  --white: #FEFCF8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Barlow', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* FHP utility classes */
+.font-condensed { font-family: 'Barlow Condensed', sans-serif; }
+
+.eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.eyebrow-orange { color: var(--orange); }
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 7px;
+  background: var(--orange);
+  border: 1.5px solid var(--orange);
+  color: var(--white);
+  transition: all 0.13s;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: var(--orange-d);
+  border-color: var(--orange-d);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.13s;
+}
+
+.btn-ghost:hover { opacity: 0.65; }
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--cream3);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--cream3);
+  margin: 28px 0;
+}
+
+input, textarea, select {
+  font-family: 'Barlow', sans-serif;
+}

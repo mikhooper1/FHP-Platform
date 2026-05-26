@@ -14,23 +14,16 @@ export async function POST(req: Request) {
       return `Entry ${i + 1} (${date})\nPrompt: "${e.prompt}"\n${e.text}`
     }).join('\n\n---\n\n')
 
-    const prompt = `You are the AI mirror for Foundation High Performance (FHP), a platform for athletes aged 14-22. Read these journal entries and provide calm, honest, specific insights about patterns, confidence, preparation habits, and pressure responses.
+    const prompt = `You are the AI mirror for Foundation High Performance (FHP), a platform for athletes aged 14-22. Read these journal entries and provide calm, honest, specific insights.
 
-Tone: calm, intelligent, non-judgmental. Like a trusted advisor who has been quietly paying attention. Be specific to what they actually wrote — never generic.
+Tone: calm, intelligent, non-judgmental. Like a trusted advisor who has been quietly paying attention. Always specific to what they actually wrote.
 
-Respond with ONLY a JSON object in this exact format:
-{
-  "snippet": "One sentence insight max 20 words",
-  "narrative": "3-4 sentences about how this athlete is currently operating. Specific and honest.",
-  "observations": [
-    {"label": "Preparation", "text": "Specific observation from their entries"},
-    {"label": "Pressure", "text": "Specific observation from their entries"},
-    {"label": "Patterns", "text": "Specific observation from their entries"}
-  ],
-  "question": "One forward-looking question for them to sit with this week"
-}
+You MUST respond with ONLY a valid JSON object. No markdown, no backticks, no explanation. Just the raw JSON.
 
-Journal entries:
+Required format:
+{"snippet":"One sentence insight max 20 words","narrative":"3-4 sentences about how this athlete is currently operating. Specific and honest.","observations":[{"label":"Preparation","text":"Specific observation from their entries"},{"label":"Pressure","text":"Specific observation from their entries"},{"label":"Patterns","text":"Specific observation from their entries"}],"question":"One forward-looking question for them to sit with this week"}
+
+Journal entries to analyse:
 
 ${entriesText}`
 
@@ -48,14 +41,43 @@ ${entriesText}`
       })
     })
 
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('Anthropic error:', errText)
+      return NextResponse.json({ error: 'Anthropic API failed' }, { status: 500 })
+    }
+
     const data = await response.json()
     const text = data.content?.[0]?.text || ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean)
+    
+    // Strip any markdown or extra whitespace
+    const clean = text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim()
+
+    let parsed
+    try {
+      parsed = JSON.parse(clean)
+    } catch (parseErr) {
+      console.error('JSON parse error. Raw text:', text)
+      // Return a fallback structure if parsing fails
+      return NextResponse.json({
+        snippet: 'Your reflections show a pattern worth understanding.',
+        narrative: 'The AI has read your entries. Keep reflecting consistently for more specific insights.',
+        observations: [
+          { label: 'Consistency', text: 'You are building a reflection habit. This is the foundation.' },
+          { label: 'Honesty', text: 'Your entries show self-awareness. Trust that process.' },
+          { label: 'Growth', text: 'Each entry adds to the picture. Keep going.' }
+        ],
+        question: 'What would your best self do differently this week?'
+      })
+    }
 
     return NextResponse.json(parsed)
+
   } catch (err) {
-    console.error('Mirror error:', err)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    console.error('Mirror route error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

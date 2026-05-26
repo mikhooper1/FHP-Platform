@@ -427,14 +427,20 @@ export default function Home() {
                 </div>
                 <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, marginBottom: 28 }}>{activeLesson.intro}</p>
 
-                <div style={{ width: '100%', maxWidth: 300, margin: '0 auto 32px', aspectRatio: '9/16', borderRadius: 10, border: '1px solid var(--cream3)', background: 'var(--cream2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', border: '1px solid var(--cream4)', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 0, height: 0, borderStyle: 'solid', borderWidth: '8px 0 8px 14px', borderColor: 'transparent transparent transparent var(--orange)', marginLeft: 3 }} />
+                {activeLesson.video ? (
+                  <div style={{ position: 'relative', width: '100%', maxWidth: 300, margin: '0 auto 32px', borderRadius: 10, overflow: 'hidden', aspectRatio: '9/16', background: '#111', border: '1px solid var(--cream3)' }}>
+                    <iframe
+                      src={activeLesson.video}
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
                   </div>
-                  <div style={{ fontFamily: 'Barlow Condensed', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink4)' }}>
-                    {activeLesson.week} video
+                ) : (
+                  <div style={{ width: '100%', maxWidth: 300, margin: '0 auto 32px', aspectRatio: '9/16', borderRadius: 10, border: '1px solid var(--cream3)', background: 'var(--cream2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink4)' }}>Video coming soon</div>
                   </div>
-                </div>
+                )}
 
                 <div style={{ marginBottom: 28 }}>
                   <span style={eyebrow()}>The framework</span>

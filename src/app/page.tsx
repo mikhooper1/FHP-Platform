@@ -1,65 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server'
+'use client'
 
-export async function POST(req: NextRequest) {
-  try {
-    const { entries } = await req.json()
+import { useState, useEffect, useRef } from 'react'
+import { lessons, type Lesson } from '@/lib/lessons'
 
-    if (!entries || entries.length < 3) {
-      return NextResponse.json({ error: 'Not enough entries' }, { status: 400 })
-    }
+type Page = 'home' | 'lesson' | 'journal' | 'mirror'
 
-    const entriesText = entries.slice(0, 10).map((e: {prompt: string, text: string, date: string}, i: number) =>
-      `Entry ${i + 1} (${new Date(e.date).toLocaleDateString('en-AU')}) — Prompt: "${e.prompt}"\n${e.text}`
-    ).join('\n\n---\n\n')
+const FORMSPREE_URL = 'https://formspree.io/f/mlgvdppd'
+const PROMPTS = [
+  'What mattered most today?',
+  'Where did pressure show up?',
+  'What gave you confidence?',
+  'Did my behaviour match my standards?',
+  'What is one thing to carry into tomorrow?',
+]
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `You are the AI mirror for Foundation High Performance (FHP), a high-performance platform for athletes aged 14-22. Your job is to read an athlete's journal entries and provide calm, honest, specific insights about their patterns, confidence, preparation habits, and how they respond to pressure.
-
-Tone: calm, intelligent, non-judgmental, practical. Like a trusted performance advisor who has been quietly paying attention. Never generic. Always specific to what they actually wrote.
-
-Format your response as JSON with these exact fields:
-{
-  "snippet": "One sentence insight for the home screen (max 20 words, no quotes in the text)",
-  "narrative": "3-4 sentences describing how this athlete is currently operating. Be specific, honest, warm.",
-  "observations": [
-    {"label": "Short label", "text": "One specific observation based on their actual entries (1-2 sentences)"},
-    {"label": "Short label", "text": "Another observation"},
-    {"label": "Short label", "text": "Another observation"}
-  ],
-  "question": "One forward-looking question for them to sit with this week"
+function getWeekNumber(): number {
+  const stored = localStorage.getItem('fhp_start_date')
+  if (!stored) {
+    localStorage.setItem('fhp_start_date', new Date().toISOString())
+    return 1
+  }
+  const start = new Date(stored)
+  const now = new Date()
+  const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7))
+  return Math.min(diff + 1, 4)
 }
 
-Here are their journal entries:
-
-${entriesText}
-
-Respond with only the JSON object, no other text.`
-        }]
-      })
-    })
-
-    const data = await response.json()
-    const text = data.content?.[0]?.text || ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean)
-
-    return NextResponse.json(parsed)
-  } catch (e) {
-    console.error('Mirror API error:', e)
-    return NextResponse.json({ error: 'Failed to generate mirror' }, { status: 500 })
-  }
-}  const [page, setPage] = useState<Page>('home')
+export default function Home() {
+  const [onboarded, setOnboarded] = useState(false)
+  const [obStep, setObStep] = useState(1)
+  const [athleteName, setAthleteName] = useState('')
+  const [athleteEmail, setAthleteEmail] = useState('')
+  const [athleteLevel, setAthleteLevel] = useState('')
+  const [page, setPage] = useState<Page>('home')
   const [journalText, setJournalText] = useState('')
   const [journalPrompt, setJournalPrompt] = useState(PROMPTS[0])
   const [journalSaved, setJournalSaved] = useState(false)
@@ -124,48 +97,13 @@ Respond with only the JSON object, no other text.`
     if (entries.length < 3) return
     setAiLoading(true)
     try {
-      const entriesText = entries.slice(0, 10).map((e, i) =>
-        `Entry ${i + 1} (${new Date(e.date).toLocaleDateString('en-AU')}) — Prompt: "${e.prompt}"\n${e.text}`
-      ).join('\n\n---\n\n')
-
-      const response = await fetch(CLAUDE_API, {
+      const response = await fetch('/api/mirror', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are the AI mirror for Foundation High Performance (FHP), a high-performance platform for athletes aged 14-22. Your job is to read an athlete's journal entries and provide calm, honest, specific insights about their patterns, confidence, preparation habits, and how they respond to pressure.
-
-Tone: calm, intelligent, non-judgmental, practical. Like a trusted performance advisor who has been quietly paying attention. Never generic. Always specific to what they actually wrote.
-
-Format your response as JSON with these exact fields:
-{
-  "snippet": "One sentence insight for the home screen (max 20 words, no quotes in the text)",
-  "narrative": "3-4 sentences describing how this athlete is currently operating. Be specific, honest, warm.",
-  "observations": [
-    {"label": "Short label", "text": "One specific observation based on their actual entries (italic style, 1-2 sentences)"},
-    {"label": "Short label", "text": "Another observation"},
-    {"label": "Short label", "text": "Another observation"}
-  ],
-  "question": "One forward-looking question for them to sit with this week"
-}
-
-Here are their journal entries:
-
-${entriesText}
-
-Respond with only the JSON object, no other text.`
-          }]
-        })
+        body: JSON.stringify({ entries })
       })
-
-      const data = await response.json()
-      const text = data.content?.[0]?.text || ''
-      const clean = text.replace(/```json|```/g, '').trim()
-      const parsed = JSON.parse(clean)
-
+      if (!response.ok) throw new Error('API failed')
+      const parsed = await response.json()
       setAiInsight(parsed.snippet || '')
       setMirrorSummary(JSON.stringify(parsed))
       localStorage.setItem('fhp_mirror_insight', parsed.snippet || '')
@@ -698,13 +636,7 @@ Respond with only the JSON object, no other text.`
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 640px) {
-          .desktop-sidebar { display: none !important; }
-          .mobile-nav { display: block !important; }
-          main { padding: 28px 20px 90px !important; }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{__html: '@media (max-width: 640px) { .desktop-sidebar { display: none !important; } .mobile-nav { display: block !important; } main { padding: 28px 20px 90px !important; } }'}} />
     </div>
   )
 }

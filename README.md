@@ -14,7 +14,7 @@ Place `logo.png` (the transparent FHP badge) into the `/public` folder.
 
 3. Run locally:
 ```
-npm run dev
+npm run dev 
 ```
 
 Open [http://localhost:3000](http://localhost:3000)

@@ -5,79 +5,79 @@ export async function POST(req: Request) {
     const body = await req.json()
     const entries = body.entries || []
 
+    console.log('Mirror API called with', entries.length, 'entries')
+
     if (entries.length < 3) {
       return NextResponse.json({ error: 'Not enough entries' }, { status: 400 })
     }
 
-    const entriesText = entries.slice(0, 10).map((e: any, i: number) => {
-      const date = new Date(e.date).toLocaleDateString('en-AU')
-      return `Entry ${i + 1} (${date})\nPrompt: "${e.prompt}"\n${e.text}`
-    }).join('\n\n---\n\n')
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    console.log('API key present:', !!apiKey, 'length:', apiKey?.length)
 
-    const prompt = `You are the AI mirror for Foundation High Performance (FHP), a platform for athletes aged 14-22. Read these journal entries and provide calm, honest, specific insights.
+    if (!apiKey) {
+      return NextResponse.json({
+        snippet: 'API key not configured.',
+        narrative: 'Please add your Anthropic API key to Vercel environment variables.',
+        observations: [{ label: 'Setup', text: 'Add ANTHROPIC_API_KEY to Vercel.' }],
+        question: 'Is the API key configured in Vercel?'
+      })
+    }
 
-Tone: calm, intelligent, non-judgmental. Like a trusted advisor who has been quietly paying attention. Always specific to what they actually wrote.
-
-You MUST respond with ONLY a valid JSON object. No markdown, no backticks, no explanation. Just the raw JSON.
-
-Required format:
-{"snippet":"One sentence insight max 20 words","narrative":"3-4 sentences about how this athlete is currently operating. Specific and honest.","observations":[{"label":"Preparation","text":"Specific observation from their entries"},{"label":"Pressure","text":"Specific observation from their entries"},{"label":"Patterns","text":"Specific observation from their entries"}],"question":"One forward-looking question for them to sit with this week"}
-
-Journal entries to analyse:
-
-${entriesText}`
+    const entriesText = entries.slice(0, 5).map((e: any, i: number) =>
+      `Entry ${i + 1}: ${e.text}`
+    ).join('\n\n')
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }]
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: `Read these athlete journal entries and return ONLY a JSON object with no markdown:
+{"snippet":"one sentence max 20 words","narrative":"2-3 sentences about how this athlete operates","observations":[{"label":"label","text":"observation"},{"label":"label","text":"observation"}],"question":"one question for them"}
+
+Entries:
+${entriesText}`
+        }]
       })
     })
 
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('Anthropic error:', errText)
-      return NextResponse.json({ error: 'Anthropic API failed' }, { status: 500 })
-    }
+    console.log('Anthropic response status:', response.status)
 
     const data = await response.json()
-    const text = data.content?.[0]?.text || ''
-    
-    // Strip any markdown or extra whitespace
-    const clean = text
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim()
+    console.log('Response data keys:', Object.keys(data))
 
-    let parsed
+    const text = data.content?.[0]?.text || ''
+    console.log('Raw text (first 200):', text.slice(0, 200))
+
+    const clean = text.replace(/```json/g, '').replace(/```/g, '').trim()
+
     try {
-      parsed = JSON.parse(clean)
-    } catch (parseErr) {
-      console.error('JSON parse error. Raw text:', text)
-      // Return a fallback structure if parsing fails
+      const parsed = JSON.parse(clean)
+      console.log('Parse success')
+      return NextResponse.json(parsed)
+    } catch (e) {
+      console.error('Parse failed, raw:', clean.slice(0, 300))
+      // Return fallback with actual AI text embedded
       return NextResponse.json({
-        snippet: 'Your reflections show a pattern worth understanding.',
-        narrative: 'The AI has read your entries. Keep reflecting consistently for more specific insights.',
+        snippet: 'Your mirror is ready.',
+        narrative: text.slice(0, 200) || 'Keep reflecting to build your mirror.',
         observations: [
-          { label: 'Consistency', text: 'You are building a reflection habit. This is the foundation.' },
-          { label: 'Honesty', text: 'Your entries show self-awareness. Trust that process.' },
-          { label: 'Growth', text: 'Each entry adds to the picture. Keep going.' }
+          { label: 'Reflection', text: 'Your entries show growing self-awareness.' },
+          { label: 'Patterns', text: 'Continue writing to reveal deeper patterns.' }
         ],
-        question: 'What would your best self do differently this week?'
+        question: 'What would your best self focus on this week?'
       })
     }
 
-    return NextResponse.json(parsed)
-
-  } catch (err) {
-    console.error('Mirror route error:', err)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Route error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

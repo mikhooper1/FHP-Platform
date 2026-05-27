@@ -98,6 +98,9 @@ export default function Home() {
   const [aiInsight, setAiInsight] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [mirrorData, setMirrorData] = useState<Record<string, unknown> | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [voiceSupported, setVoiceSupported] = useState(true)
+  const recognitionRef = useRef<any>(null)
   const mainRef = useRef<HTMLElement>(null)
 
   const activeLesson: Lesson | null =
@@ -175,6 +178,7 @@ export default function Home() {
 
   function saveJournal() {
     if (!journalText.trim()) return
+    if (isRecording) stopRecording()
     const entries = JSON.parse(localStorage.getItem('fhp_journal') || '[]')
     const newEntry = { text: journalText, prompt: journalPrompt, date: new Date().toISOString() }
     entries.unshift(newEntry)
@@ -182,6 +186,61 @@ export default function Home() {
     setJournalEntries(entries)
     setJournalSaved(true)
     generateAiInsight(entries)
+  }
+
+  function stopRecording() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      recognitionRef.current = null
+    }
+    setIsRecording(false)
+  }
+
+  function toggleRecording() {
+    if (isRecording) {
+      stopRecording()
+      return
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setVoiceSupported(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-AU'
+
+    let finalTranscript = journalText
+
+    recognition.onresult = (event: any) => {
+      let interim = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? ' ' : '') + transcript
+        } else {
+          interim = transcript
+        }
+      }
+      setJournalText(finalTranscript + (interim ? ' ' + interim : ''))
+    }
+
+    recognition.onerror = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+    }
+
+    recognition.onend = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsRecording(true)
   }
 
   function navTo(p: Page) {
@@ -519,9 +578,36 @@ export default function Home() {
             {!journalSaved ? (
               <>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 19, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.25, marginBottom: 16 }}>{journalPrompt}</div>
+                
+                {/* Voice memo button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <button
+                    onClick={toggleRecording}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '9px 16px',
+                      fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 500,
+                      letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+                      cursor: 'pointer', borderRadius: 7,
+                      background: isRecording ? 'var(--orange)' : 'var(--white)',
+                      border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
+                      color: isRecording ? 'white' : 'var(--ink3)',
+                      transition: 'all 0.15s',
+                    }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: isRecording ? 'white' : 'var(--orange)', display: 'inline-block', animation: isRecording ? 'pulse 1s infinite' : 'none' }} />
+                    {isRecording ? 'Stop recording' : 'Speak your reflection'}
+                  </button>
+                  {isRecording && (
+                    <span style={{ fontSize: 12, color: 'var(--orange)', fontStyle: 'italic' }}>Listening...</span>
+                  )}
+                  {!isRecording && !voiceSupported && (
+                    <span style={{ fontSize: 11, color: 'var(--ink4)' }}>Voice not supported on this browser</span>
+                  )}
+                </div>
+
                 <textarea value={journalText} onChange={e => setJournalText(e.target.value)}
                   style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '18px 20px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.8, resize: 'none', minHeight: 160, outline: 'none', color: 'var(--ink)' }}
-                  placeholder="Write here. There is no right or wrong. This space is yours." />
+                  placeholder="Speak your reflection above, or write here. There is no right or wrong. This space is yours." />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                   <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{wordCount} words</span>
                   <button onClick={saveJournal} style={btnPrimary}>Save →</button>
@@ -662,6 +748,10 @@ export default function Home() {
           .desktop-sidebar { display: none !important; }
           .mobile-nav { display: block !important; }
           main { padding: 28px 20px 90px !important; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.2); }
         }
       ` }} />
     </div>

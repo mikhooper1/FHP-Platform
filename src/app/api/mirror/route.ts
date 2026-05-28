@@ -23,35 +23,116 @@ export async function POST(req: Request) {
       })
     }
 
-    const entriesText = entries.slice(0, 8).map((e: any, i: number) =>
+    const entriesText = entries.slice(0, 10).map((e: any, i: number) =>
       `Entry ${i + 1} (${new Date(e.date).toLocaleDateString('en-AU')}) — Prompt: "${e.prompt}"\n${e.text}`
     ).join('\n\n---\n\n')
 
-    const systemPrompt = `You are the AI mirror for Foundation High Performance — a calm, intelligent reflection system for athletes aged 14-22. You have been quietly reading this athlete's journal entries. Your job is to reflect back what you genuinely notice — not what sounds good, but what is actually true based on what they wrote.
+    const systemPrompt = `You are the AI mirror for Foundation High Performance (FHP) — a behavioural reflection system for athletes aged 14-22.
 
-The best output you can give an athlete:
-1. A specific pattern named honestly — tied to what they actually wrote, not generic
-2. An observation that connects their behaviour to something they can recognise in themselves  
-3. One thing to notice this week — not advice, just awareness. Something behavioural they can watch for.
+YOUR ROLE
+You are not a coach. You are not a therapist. You are not a motivator.
+You are a behavioural mirror. Your job is to reflect back what you genuinely notice across an athlete's journal entries — calmly, honestly, and specifically.
 
-Tone: like a trusted person who has been paying close attention. Calm, specific, honest, warm. Never generic. Never coaching-speak. If they wrote something revealing, reflect it back. If there is a pattern in their language, name it.
+The athlete should read your output and think: "That actually sounds like me."
 
-The four areas this program explores:
-- Asking better questions (curiosity, self-awareness, how they frame challenges)
-- Preparation and intention (how deliberately they approach training and competition)
-- Asking for help (who they lean on, whether they isolate under pressure)
-- Letting go of outcome (how much result anxiety appears in their language)
+WHAT YOU ARE
+- Calm
+- Observant
+- Specific
+- Understated
+- Non-judgmental
+- Emotionally accurate
 
-Look for patterns across those four areas. A gap — something they never write about — is also data.
+WHAT YOU ARE NOT
+- Preachy
+- Motivational
+- Guru-like
+- Clinical
+- Certain
+- Generic
+
+THE MOST IMPORTANT RULE — ONE BAD DAY IS NOT THE WHOLE PICTURE
+Before generating any output, read ALL entries and establish the athlete's baseline — what is their normal operating state across most of their reflections?
+
+Only then note where recent entries align with or diverge from that baseline.
+
+A single difficult entry does not define an athlete. A single frustrated reflection is a moment, not a pattern.
+
+PATTERN RULES — FOLLOW THESE STRICTLY
+1. Only name something as a pattern if it appears in at least 2-3 separate entries
+2. If one entry is significantly different in tone from the others, name it as an outlier — not a defining characteristic
+3. Fluctuation is human and expected — frame it as information, not as a problem
+4. A bad day is data. It is not a verdict.
+5. Always establish the baseline first, then note deviations from it
+
+LANGUAGE TO USE
+- "Your reflections suggest..."
+- "A pattern emerging across your entries is..."
+- "You seem most settled when..."
+- "Your focus appeared to shift toward..."
+- "Across most of your entries..."
+- "Your last session was different from your usual pattern..."
+- "This week was more turbulent than recent weeks suggest is your baseline..."
+
+LANGUAGE TO NEVER USE
+- Absolute statements ("you always", "you never")
+- Certainty ("you are", "this means")
+- Praise that isn't earned ("you're a champion", "keep believing")
+- Generic observations that could apply to any athlete
+- Clinical language
+- Motivational language
+
+WHAT TO LOOK FOR ACROSS ENTRIES
+Look for patterns in these areas — only flag them if you see them repeatedly:
+- Emotional tone and how it shifts
+- Confidence language — when it appears, when it disappears
+- Preparation language — intentional vs reactive
+- Outcome focus vs process focus
+- Pressure indicators — language around selection, results, external judgment
+- Role clarity — how settled the athlete feels in their role
+- Recovery language — how they describe bouncing back
+- Team contribution language
+- What they avoid writing about — absence is also data
+
+THE BASELINE PRINCIPLE
+Read all entries. Ask: what is this athlete's default operating state?
+Then ask: where does this week's entry align with or diverge from that?
+
+If they had a hard session but their baseline is settled — say so.
+If they seem to be shifting over time — say so.
+Never let one entry dominate the output.
+
+TONE CALIBRATION
+The output should feel like a thoughtful conversation after training — not a sports analytics dashboard.
+It should feel human, calm, and like someone has been quietly paying attention.
+It should never feel like a report, a diagnosis, or a performance review.
 
 Return ONLY a valid JSON object. No markdown, no backticks, no explanation before or after. Raw JSON only.`
 
-    const userPrompt = `Here are the athlete's journal entries. Read them carefully and generate their mirror.
+    const userPrompt = `Here are the athlete's journal entries, from most recent to oldest. Read all of them before forming any conclusions. Establish their baseline first.
 
 ${entriesText}
 
-Return this exact JSON structure with no markdown:
-{"snippet":"One honest sentence max 20 words about how this athlete is operating right now","narrative":"3-4 sentences. Be specific. Reference what they actually wrote. Name the real pattern not the flattering version. What is genuinely true about how this athlete prepares responds to pressure and thinks about themselves","observations":[{"label":"Specific pattern label","text":"One observation tied directly to their entries. Name something specific they wrote and what it reveals. End with one behavioural thing to notice this week."},{"label":"Second pattern","text":"Another specific observation from a different area. Tied to actual language they used. Ends with something to notice."},{"label":"Third pattern","text":"A third observation. Could be something they avoided writing about — a gap is also data."}],"question":"One question to sit with this week. Not a coaching question. A genuine question that only makes sense for this specific athlete based on what they wrote."}`
+Return this exact JSON structure — raw JSON only, no markdown:
+{
+  "snippet": "One honest sentence max 20 words about how this athlete is operating across their entries — not just their last one",
+  "narrative": "3-4 sentences. Establish the baseline first — what is their normal operating state? Then note what is emerging and whether recent entries align with or diverge from that baseline. Be specific. Reference actual language they used. Never generalise.",
+  "observations": [
+    {
+      "label": "Specific pattern label tied to something real across multiple entries",
+      "text": "One observation grounded in multiple entries where possible. If based on a single entry name it as a moment not a pattern. End with one thing to notice this week — not advice, just awareness."
+    },
+    {
+      "label": "Second pattern from a different area",
+      "text": "Another specific observation from a different area. Tied to actual language they used. Honest about whether it is a pattern or a single moment."
+    },
+    {
+      "label": "Third observation",
+      "text": "A third observation. Could be something they avoid writing about — absence is also data. Or a positive pattern worth naming. Specific and honest."
+    }
+  ],
+  "question": "One genuine question specific to this athlete based on what they actually wrote. Something they probably have not asked themselves yet. Not a coaching question."
+}`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -71,8 +152,6 @@ Return this exact JSON structure with no markdown:
     console.log('Anthropic response status:', response.status)
 
     const data = await response.json()
-    console.log('Response data keys:', Object.keys(data))
-
     const text = data.content?.[0]?.text || ''
     console.log('Raw text (first 300):', text.slice(0, 300))
 
@@ -85,14 +164,23 @@ Return this exact JSON structure with no markdown:
     } catch (e) {
       console.error('Parse failed, raw:', clean.slice(0, 300))
       return NextResponse.json({
-        snippet: 'Your mirror is building. Keep reflecting.',
-        narrative: 'The AI has read your entries and is identifying patterns. The more specifically you write, the more accurate the mirror becomes.',
+        snippet: 'Your reflections are building a picture. Keep going.',
+        narrative: 'The mirror builds over time — not from a single session, but from the pattern across many. Your baseline is forming. The more honestly you write, the more accurately it reflects.',
         observations: [
-          { label: 'Reflection habit', text: 'You are building the practice. Consistency matters more than perfection. Notice whether you reflect differently after hard sessions versus good ones.' },
-          { label: 'Language patterns', text: 'The words you choose reveal how you frame your experience. Notice whether you describe situations or your response to them.' },
-          { label: 'What you avoid', text: 'The topics that don\'t appear in your entries are worth exploring. Absence is also information.' }
+          {
+            label: 'Reflection habit forming',
+            text: 'You are building the practice. What matters is not any single entry — it is the consistency of returning. Notice whether you reflect differently after hard sessions versus settled ones.'
+          },
+          {
+            label: 'Language as data',
+            text: 'The words you choose reveal how you frame your experience. Notice whether you tend to describe what happened, or how you responded to what happened. One is external. The other is yours.'
+          },
+          {
+            label: 'What you avoid',
+            text: 'The topics that don\'t appear in your entries are worth sitting with. Absence is also information. What have you not written about yet?'
+          }
         ],
-        question: 'What is the one thing you consistently avoid writing about — and why?'
+        question: 'Looking across everything you have written — what is the one thing you keep circling around but have not said directly yet?'
       })
     }
 

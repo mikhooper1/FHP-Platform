@@ -269,7 +269,7 @@ export default function Home() {
 
           {obStep === 1 && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, letterSpacing: '0.03em', color: 'var(--ink)', marginBottom: 8, textAlign: 'center', lineHeight: 1.15 }}>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, letterSpacing: '0.03em', color: 'var(--ink)', marginBottom: 8, textAlign: 'center', lineHeight: 1.15 }}>
                 Welcome to FHP Academy.
               </h1>
               <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 28 }}>
@@ -299,7 +299,7 @@ export default function Home() {
 
           {obStep === 2 && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 24, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
                 Where are you right now?
               </h1>
               <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
@@ -324,7 +324,7 @@ export default function Home() {
 
           {obStep === 3 && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 24, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
                 Here&apos;s how FHP works.
               </h1>
               <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
@@ -410,14 +410,14 @@ export default function Home() {
           <div>
             <div style={{ marginBottom: 36 }}>
               <span style={eyebrow('var(--orange)')}>Week {currentWeek}</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 30, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>
                 Good morning, {firstName}.
               </h1>
             </div>
 
             <div style={section}>
               <span style={eyebrow()}>This week&apos;s focus</span>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 16 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 16 }}>
                 {activeLesson?.focusTitle ?? 'No lesson published yet.'}
               </div>
               <button onClick={() => navTo('lesson')} style={btnPrimary}>Open lesson →</button>
@@ -480,7 +480,7 @@ export default function Home() {
               <>
                 <div style={{ marginBottom: 36 }}>
                   <span style={eyebrow('var(--orange)')}>{activeLesson.week} · Lesson</span>
-                  <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.1 }}>
+                  <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 38, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.1 }}>
                     {activeLesson.title}
                   </h1>
                 </div>

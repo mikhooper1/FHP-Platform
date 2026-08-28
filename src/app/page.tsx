@@ -27,7 +27,7 @@ function getWeekNumber(): number {
   return Math.min(diff + 1, 4)
 }
 
-// ── SHARED STYLES (defined at module level so always available) ──
+// ── SHARED STYLES ──
 const eyebrow = (color = 'var(--ink3)'): React.CSSProperties => ({
   fontFamily: 'Barlow Condensed',
   fontSize: 9,
@@ -71,12 +71,6 @@ const card: React.CSSProperties = {
   padding: '24px',
 }
 
-const divider: React.CSSProperties = {
-  height: 1,
-  background: 'var(--cream3)',
-  margin: '28px 0',
-}
-
 const section: React.CSSProperties = {
   marginBottom: 32,
   paddingBottom: 32,
@@ -88,7 +82,6 @@ export default function Home() {
   const [obStep, setObStep] = useState(1)
   const [athleteName, setAthleteName] = useState('')
   const [athleteEmail, setAthleteEmail] = useState('')
-  const [athleteLevel, setAthleteLevel] = useState('')
   const [page, setPage] = useState<Page>('home')
   const [journalText, setJournalText] = useState('')
   const [journalPrompt, setJournalPrompt] = useState(PROMPTS[0])
@@ -100,6 +93,8 @@ export default function Home() {
   const [mirrorData, setMirrorData] = useState<Record<string, unknown> | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [voiceSupported, setVoiceSupported] = useState(true)
+  const [firstReflection1, setFirstReflection1] = useState('')
+  const [firstReflection2, setFirstReflection2] = useState('')
   const recognitionRef = useRef<any>(null)
   const mainRef = useRef<HTMLElement>(null)
 
@@ -130,33 +125,49 @@ export default function Home() {
   }, [page])
 
   async function handleBegin() {
-    if (!athleteName.trim() || !athleteEmail.trim() || !athleteEmail.includes('@')) return
+    if (!athleteName.trim()) return
     localStorage.setItem('fhp_athlete_name', athleteName.trim())
-    localStorage.setItem('fhp_athlete_email', athleteEmail.trim())
-    try {
-      await fetch(FORMSPREE_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: athleteName, email: athleteEmail, source: 'FHP Academy' }),
+
+    const entries = []
+    if (firstReflection1.trim()) {
+      entries.push({
+        text: firstReflection1.trim(),
+        prompt: 'Think about a recent time you performed really well. What was going on before it?',
+        date: new Date().toISOString()
       })
-    } catch {}
+    }
+    if (firstReflection2.trim()) {
+      entries.push({
+        text: firstReflection2.trim(),
+        prompt: "Think about a time you weren't quite yourself. What was different?",
+        date: new Date().toISOString()
+      })
+    }
+    if (entries.length > 0) {
+      localStorage.setItem('fhp_journal', JSON.stringify(entries))
+      setJournalEntries(entries)
+    }
     setObStep(2)
   }
 
-  function handleLevelSelect(level: string) {
-    setAthleteLevel(level)
-    localStorage.setItem('fhp_athlete_level', level)
-    setObStep(3)
-  }
-
-  function handleEnter() {
+  async function handleEnter() {
+    if (athleteEmail.trim() && athleteEmail.includes('@')) {
+      localStorage.setItem('fhp_athlete_email', athleteEmail.trim())
+      try {
+        await fetch(FORMSPREE_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: athleteName, email: athleteEmail, source: 'FHP Academy' }),
+        })
+      } catch {}
+    }
     setCurrentWeek(getWeekNumber())
     setOnboarded(true)
   }
 
   async function generateAiInsight(entries: typeof journalEntries) {
-    if (entries.length < 3) return
+    if (entries.length < 1) return
     setAiLoading(true)
     try {
       const response = await fetch('/api/mirror', {
@@ -196,56 +207,37 @@ export default function Home() {
     setIsRecording(false)
   }
 
-  function toggleRecording() {
-    if (isRecording) {
-      stopRecording()
-      return
-    }
-
+  function startRecording(setter: (v: string) => void, current: string) {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setVoiceSupported(false)
-      return
-    }
-
+    if (!SpeechRecognition) { setVoiceSupported(false); return }
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-AU'
-
-    let finalTranscript = journalText
-
+    let finalTranscript = current
     recognition.onresult = (event: any) => {
       let interim = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript
+        const t = event.results[i][0].transcript
         if (event.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + transcript
-        } else {
-          interim = transcript
-        }
+          finalTranscript += (finalTranscript ? ' ' : '') + t
+        } else { interim = t }
       }
-      setJournalText(finalTranscript + (interim ? ' ' + interim : ''))
+      setter(finalTranscript + (interim ? ' ' + interim : ''))
     }
-
-    recognition.onerror = () => {
-      setIsRecording(false)
-      recognitionRef.current = null
-    }
-
-    recognition.onend = () => {
-      setIsRecording(false)
-      recognitionRef.current = null
-    }
-
+    recognition.onerror = () => { setIsRecording(false); recognitionRef.current = null }
+    recognition.onend = () => { setIsRecording(false); recognitionRef.current = null }
     recognitionRef.current = recognition
     recognition.start()
     setIsRecording(true)
   }
 
-  function navTo(p: Page) {
-    setPage(p)
+  function toggleRecording(setter: (v: string) => void, current: string) {
+    if (isRecording) { stopRecording(); return }
+    startRecording(setter, current)
   }
+
+  function navTo(p: Page) { setPage(p) }
 
   const firstName = athleteName.split(' ')[0] || 'there'
   const wordCount = journalText.trim() ? journalText.trim().split(/\s+/).length : 0
@@ -257,102 +249,135 @@ export default function Home() {
     { id: 'mirror', label: 'My mirror' },
   ]
 
+  const VoiceBtn = ({ onClick }: { onClick: () => void }) => (
+    <button onClick={onClick} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      padding: '9px 16px', fontFamily: 'Barlow Condensed', fontSize: 10,
+      fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+      cursor: 'pointer', borderRadius: 7,
+      background: isRecording ? 'var(--orange)' : 'var(--white)',
+      border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
+      color: isRecording ? 'white' : 'var(--ink3)',
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isRecording ? 'white' : 'var(--orange)', display: 'inline-block' }} />
+      {isRecording ? 'Stop' : 'Speak'}
+    </button>
+  )
+
+  const privacyNote = (
+    <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
+      Your reflections are private. Only the AI reads them to help you notice patterns. No coach, parent or school can see what you write.
+    </p>
+  )
+
   // ── ONBOARDING ──
   if (!onboarded) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
 
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="Foundation High Performance" style={{ width: 160, height: 'auto', margin: '0 auto', display: 'block' }} />
           </div>
 
+          {/* STEP 1 — Reflection first */}
           {obStep === 1 && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, letterSpacing: '0.03em', color: 'var(--ink)', marginBottom: 8, textAlign: 'center', lineHeight: 1.15 }}>
-                Welcome to FHP Academy.
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', marginBottom: 6, textAlign: 'center', lineHeight: 1.1 }}>
+                Welcome to FHP.
               </h1>
               <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 28 }}>
-                A quiet environment for reflection, preparation and growth.
+                Understand how you actually prepare, respond and perform.
               </p>
+
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
+                  Think about a recent time you performed really well. What was going on before it?
+                </div>
+                <VoiceBtn onClick={() => toggleRecording(setFirstReflection1, firstReflection1)} />
+                <textarea
+                  value={firstReflection1}
+                  onChange={e => setFirstReflection1(e.target.value)}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
+                  placeholder="Speak or write here..."
+                />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
+                  Think about a time you weren&apos;t quite yourself. What was different?
+                </div>
+                <VoiceBtn onClick={() => toggleRecording(setFirstReflection2, firstReflection2)} />
+                <textarea
+                  value={firstReflection2}
+                  onChange={e => setFirstReflection2(e.target.value)}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
+                  placeholder="Speak or write here..."
+                />
+              </div>
+
               <input
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 10, display: 'block' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 14, display: 'block' }}
                 placeholder="Your first name"
                 value={athleteName}
                 onChange={e => setAthleteName(e.target.value)}
               />
-              <input
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 16, display: 'block' }}
-                placeholder="Your email address"
-                type="email"
-                value={athleteEmail}
-                onChange={e => setAthleteEmail(e.target.value)}
-              />
-              <button onClick={handleBegin} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', marginBottom: 10 }}>
-                Begin →
+
+              <button
+                onClick={handleBegin}
+                disabled={!athleteName.trim()}
+                style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: athleteName.trim() ? 1 : 0.5 }}>
+                Continue →
               </button>
-              <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6 }}>
-                By continuing you agree to receive FHP program updates. Unsubscribe anytime.
-              </p>
+
+              {privacyNote}
             </div>
           )}
 
+          {/* STEP 2 — How it works + email */}
           {obStep === 2 && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
-                Where are you right now?
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 30, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center', lineHeight: 1.1 }}>
+                Here&apos;s how it works.
               </h1>
               <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
-                This shapes your experience.
+                The more honestly you use this, the more useful it becomes.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                {[
-                  ['Academy', 'Development program'],
-                  ['Semi-pro', 'Transitioning to pro'],
-                  ['Professional', 'Contracted athlete'],
-                  ['School sport', 'Representative level'],
-                ].map(([name, sub]) => (
-                  <div key={name} onClick={() => handleLevelSelect(name as string)}
-                    style={{ border: `1.5px solid ${athleteLevel === name ? 'var(--orange)' : 'var(--cream4)'}`, background: athleteLevel === name ? 'var(--orange-t)' : 'var(--white)', borderRadius: 8, padding: '14px', cursor: 'pointer' }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{sub}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {obStep === 3 && (
-            <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>
-                Here&apos;s how FHP works.
-              </h1>
-              <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
-                Three simple things. Done consistently.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {[
-                  ['01', 'Watch the lesson', 'Each week has one short video and a framework. Takes 20-25 minutes.'],
-                  ['02', 'Reflect daily', 'Answer one question at the end of each day. Takes 5 minutes.'],
-                  ['03', 'Read your mirror', 'The AI reads your entries and builds a picture of how you operate under pressure.'],
+                  ['01', 'Learn something', 'Each week covers one idea about how you prepare and perform under pressure.'],
+                  ['02', 'Try it and reflect', 'At the end of each day, take five minutes to note what actually happened.'],
+                  ['03', 'Notice what keeps showing up', 'Over time FHP helps you see patterns in how you think and perform.'],
                 ].map(([num, title, desc]) => (
-                  <div key={num} style={{ display: 'flex', gap: 16, padding: '16px', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 10 }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 600, color: 'var(--orange)', flexShrink: 0, lineHeight: 1, paddingTop: 2 }}>{num}</div>
+                  <div key={num} style={{ display: 'flex', gap: 16, padding: '14px', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 10 }}>
+                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 20, fontWeight: 600, color: 'var(--orange)', flexShrink: 0, lineHeight: 1, paddingTop: 2 }}>{num}</div>
                     <div>
-                      <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 500, color: 'var(--ink)', marginBottom: 4 }}>{title}</div>
+                      <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{title}</div>
                       <div style={{ fontSize: 12.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.6 }}>{desc}</div>
                     </div>
                   </div>
                 ))}
               </div>
+
+              <input
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 14, display: 'block' }}
+                placeholder="Your email — to save your progress"
+                type="email"
+                value={athleteEmail}
+                onChange={e => setAthleteEmail(e.target.value)}
+              />
+
               <button onClick={handleEnter} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>
-                Start Week 1 →
+                Start →
               </button>
+
+              {privacyNote}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 5, justifyContent: 'center', marginTop: 20 }}>
-            {[1, 2, 3].map(i => (
+            {[1, 2].map(i => (
               <div key={i} style={{ width: 18, height: 2, borderRadius: 1, background: i <= obStep ? 'var(--orange)' : 'var(--cream3)', transition: 'background 0.2s' }} />
             ))}
           </div>
@@ -365,7 +390,7 @@ export default function Home() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', maxWidth: 1000, margin: '0 auto' }}>
 
-      {/* DESKTOP SIDEBAR */}
+      {/* SIDEBAR */}
       <nav style={{ width: 184, flexShrink: 0, background: 'var(--white)', borderRight: '1px solid var(--cream3)', display: 'flex', flexDirection: 'column', padding: '28px 0 24px', position: 'sticky', top: 0, height: '100vh' }} className="desktop-sidebar">
         <div style={{ padding: '0 18px 22px', borderBottom: '1px solid var(--cream3)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.png" alt="FHP" style={{ width: 32, height: 'auto', display: 'block' }} />
@@ -410,14 +435,14 @@ export default function Home() {
           <div>
             <div style={{ marginBottom: 36 }}>
               <span style={eyebrow('var(--orange)')}>Week {currentWeek}</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.0 }}>
                 Good morning, {firstName}.
               </h1>
             </div>
 
             <div style={section}>
               <span style={eyebrow()}>This week&apos;s focus</span>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, marginBottom: 16 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.15, marginBottom: 16 }}>
                 {activeLesson?.focusTitle ?? 'No lesson published yet.'}
               </div>
               <button onClick={() => navTo('lesson')} style={btnPrimary}>Open lesson →</button>
@@ -434,13 +459,17 @@ export default function Home() {
               <span style={eyebrow()}>
                 From your mirror
                 <span style={{ fontSize: 9, color: 'var(--ink4)', fontWeight: 400, marginLeft: 8, letterSpacing: '0.08em', textTransform: 'none' as const }}>
-                  — AI analysis of your journal
+                  — builds as you reflect
                 </span>
               </span>
-              {journalEntries.length < 3 ? (
+              {journalEntries.length === 0 ? (
+                <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>
+                  Your mirror builds as you reflect. Start by adding your first entry today.
+                </div>
+              ) : journalEntries.length < 3 ? (
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 12 }}>
-                    Write {3 - journalEntries.length} more {3 - journalEntries.length === 1 ? 'entry' : 'entries'} to unlock your first AI insight.
+                    {3 - journalEntries.length} more {3 - journalEntries.length === 1 ? 'entry' : 'entries'} before patterns start to emerge.
                   </div>
                   <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                     {[1, 2, 3].map(i => (
@@ -450,11 +479,11 @@ export default function Home() {
                   </div>
                 </div>
               ) : aiLoading ? (
-                <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink4)', fontStyle: 'italic' }}>Analysing your entries...</div>
+                <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink4)', fontStyle: 'italic' }}>Reading your entries...</div>
               ) : (
                 <>
                   <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 12 }}>
-                    &ldquo;{aiInsight || 'Your reflections suggest confidence improves when preparation feels intentional.'}&rdquo;
+                    &ldquo;{aiInsight || 'Keep reflecting — your mirror is building.'}&rdquo;
                   </div>
                   <button onClick={() => navTo('mirror')} style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--orange)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                     Read your full mirror →
@@ -464,9 +493,9 @@ export default function Home() {
             </div>
 
             <div>
-              <span style={eyebrow()}>Today&apos;s reflection</span>
+              <span style={eyebrow()}>Today</span>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 400, color: 'var(--ink)', marginBottom: 14 }}>
-                Close the day. Five minutes. One honest entry.
+                Five minutes. One honest entry.
               </div>
               <button onClick={() => navTo('journal')} style={btnPrimary}>Reflect now →</button>
             </div>
@@ -480,20 +509,16 @@ export default function Home() {
               <>
                 <div style={{ marginBottom: 36 }}>
                   <span style={eyebrow('var(--orange)')}>{activeLesson.week} · Lesson</span>
-                  <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 38, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.1 }}>
+                  <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 38, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>
                     {activeLesson.title}
                   </h1>
                 </div>
+
                 <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, marginBottom: 28 }}>{activeLesson.intro}</p>
 
                 {activeLesson.video ? (
                   <div style={{ position: 'relative', width: '100%', maxWidth: 300, margin: '0 auto 32px', borderRadius: 10, overflow: 'hidden', aspectRatio: '9/16', background: '#111', border: '1px solid var(--cream3)' }}>
-                    <iframe
-                      src={activeLesson.video}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
+                    <iframe src={activeLesson.video} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
                   </div>
                 ) : (
                   <div style={{ width: '100%', maxWidth: 300, margin: '0 auto 32px', aspectRatio: '9/16', borderRadius: 10, border: '1px solid var(--cream3)', background: 'var(--cream2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -548,7 +573,6 @@ export default function Home() {
             ) : (
               <div style={{ textAlign: 'center', padding: '60px 0' }}>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Week {currentWeek} lesson coming soon.</div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Check back shortly.</div>
               </div>
             )}
           </div>
@@ -559,9 +583,9 @@ export default function Home() {
           <div style={{ maxWidth: 540 }}>
             <div style={{ marginBottom: 36 }}>
               <span style={eyebrow('var(--orange)')}>Daily reflection</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)' }}>Reflect.</h1>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, color: 'var(--ink)' }}>Reflect.</h1>
               <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.6 }}>
-                Write honestly. This is private — only the AI reads it to build your mirror.
+                Your reflections are private. Only the AI reads them to help you notice patterns over time.
               </p>
             </div>
 
@@ -578,36 +602,13 @@ export default function Home() {
             {!journalSaved ? (
               <>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 19, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.25, marginBottom: 16 }}>{journalPrompt}</div>
-                
-                {/* Voice memo button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <button
-                    onClick={toggleRecording}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '9px 16px',
-                      fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 500,
-                      letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-                      cursor: 'pointer', borderRadius: 7,
-                      background: isRecording ? 'var(--orange)' : 'var(--white)',
-                      border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
-                      color: isRecording ? 'white' : 'var(--ink3)',
-                      transition: 'all 0.15s',
-                    }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: isRecording ? 'white' : 'var(--orange)', display: 'inline-block', animation: isRecording ? 'pulse 1s infinite' : 'none' }} />
-                    {isRecording ? 'Stop recording' : 'Speak your reflection'}
-                  </button>
-                  {isRecording && (
-                    <span style={{ fontSize: 12, color: 'var(--orange)', fontStyle: 'italic' }}>Listening...</span>
-                  )}
-                  {!isRecording && !voiceSupported && (
-                    <span style={{ fontSize: 11, color: 'var(--ink4)' }}>Voice not supported on this browser</span>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <VoiceBtn onClick={() => { if (isRecording) { stopRecording(); return }; startRecording(setJournalText, journalText) }} />
+                  {isRecording && <span style={{ fontSize: 12, color: 'var(--orange)', fontStyle: 'italic' }}>Listening...</span>}
                 </div>
-
                 <textarea value={journalText} onChange={e => setJournalText(e.target.value)}
                   style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '18px 20px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.8, resize: 'none', minHeight: 160, outline: 'none', color: 'var(--ink)' }}
-                  placeholder="Speak your reflection above, or write here. There is no right or wrong. This space is yours." />
+                  placeholder="Speak or write here. This space is yours." />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                   <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{wordCount} words</span>
                   <button onClick={saveJournal} style={btnPrimary}>Save →</button>
@@ -618,8 +619,8 @@ export default function Home() {
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Saved.</div>
                 <div style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto 24px' }}>
                   {journalEntries.length >= 3
-                    ? 'The AI is reading your entries and updating your mirror.'
-                    : `${3 - journalEntries.length} more ${3 - journalEntries.length === 1 ? 'entry' : 'entries'} until your first AI insight.`}
+                    ? 'Your mirror is updating.'
+                    : `${3 - journalEntries.length} more ${3 - journalEntries.length === 1 ? 'entry' : 'entries'} before patterns start to emerge.`}
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => { setJournalSaved(false); setJournalText('') }} style={btnOutline}>Add another</button>
@@ -650,79 +651,92 @@ export default function Home() {
         {page === 'mirror' && (
           <div style={{ maxWidth: 580 }}>
             <div style={{ marginBottom: 36 }}>
-              <span style={eyebrow('var(--orange)')}>AI reflection summary</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)' }}>Your mirror.</h1>
+              <span style={eyebrow('var(--orange)')}>Your mirror</span>
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, color: 'var(--ink)' }}>What FHP notices.</h1>
               <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.6 }}>
-                The AI reads your journal entries and builds an honest picture of how you operate — your patterns, your pressure responses, and where you&apos;re growing.
+                The more honestly you reflect, the more accurately this builds a picture of how you actually operate.
               </p>
             </div>
 
-            {journalEntries.length < 3 ? (
+            {journalEntries.length === 0 ? (
+              <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 10 }}>Nothing here yet.</div>
+                <div style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.75, maxWidth: 300, margin: '0 auto 20px' }}>
+                  Start with one honest reflection. That&apos;s enough to begin.
+                </div>
+                <button onClick={() => navTo('journal')} style={btnPrimary}>Reflect now →</button>
+              </div>
+            ) : journalEntries.length < 3 ? (
               <div>
                 <div style={{ ...card, textAlign: 'center', marginBottom: 16 }}>
                   <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 10 }}>The picture is forming.</div>
                   <div style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.75, maxWidth: 320, margin: '0 auto 20px' }}>
-                    Write {Math.max(0, 3 - journalEntries.length)} more reflection{3 - journalEntries.length !== 1 ? 's' : ''} to unlock your first AI analysis.
+                    It&apos;s too early to call anything a pattern yet. Keep checking in and FHP will start to notice what keeps showing up.
                   </div>
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-                    {[1, 2, 3, 4, 5].map(i => (
+                    {[1, 2, 3].map(i => (
                       <div key={i} style={{ width: 28, height: 3, borderRadius: 2, background: i <= journalEntries.length ? 'var(--orange)' : 'var(--cream3)' }} />
                     ))}
-                    <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 4 }}>{journalEntries.length} of 5</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 4 }}>{journalEntries.length} of 3</span>
                   </div>
-                  <button onClick={() => navTo('journal')} style={btnPrimary}>Write a reflection →</button>
+                  <button onClick={() => navTo('journal')} style={btnPrimary}>Add a reflection →</button>
                 </div>
+
                 {journalEntries.length > 0 && (
                   <div style={{ background: 'var(--white)', border: '1px solid var(--cream3)', borderLeft: '2px solid var(--orange)', borderRadius: '0 8px 8px 0', padding: '16px 20px' }}>
-                    <span style={{ ...eyebrow(), marginBottom: 8 }}>Early observation</span>
+                    <span style={{ ...eyebrow(), marginBottom: 8 }}>One thing worth noticing from today</span>
                     <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.75 }}>
-                      &ldquo;You appear to reflect most honestly after difficult days. The entries where things didn&apos;t go well are your most specific and self-aware. That&apos;s a good sign.&rdquo;
+                      &ldquo;It&apos;s too early to call this a pattern — but keep checking in this week and we&apos;ll see whether it appears again.&rdquo;
                     </div>
                   </div>
                 )}
               </div>
             ) : aiLoading ? (
               <div style={{ ...card, textAlign: 'center', padding: '48px 24px' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Analysing your entries...</div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>The AI is reading your reflections. This takes a moment.</div>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Reading your entries...</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>This takes a moment.</div>
               </div>
             ) : mirrorData ? (
               <div>
                 <div style={{ marginBottom: 28 }}>
                   <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--ink4)', marginBottom: 14, display: 'block' }}>
-                    Updated this week · Based on {journalEntries.length} {journalEntries.length === 1 ? 'entry' : 'entries'}
+                    Based on {journalEntries.length} {journalEntries.length === 1 ? 'entry' : 'entries'}
                   </span>
                   <p style={{ fontSize: 15, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.85 }}>
                     {(mirrorData.narrative as string) ?? ''}
                   </p>
                 </div>
-                <div style={divider} />
-                <span style={eyebrow()}>Observations</span>
+
+                <div style={{ height: 1, background: 'var(--cream3)', margin: '28px 0' }} />
+
+                <span style={eyebrow()}>What&apos;s showing up</span>
                 {((mirrorData.observations as Array<{label: string, text: string}>) ?? []).map((obs, i) => (
                   <div key={i} style={{ padding: '18px 0', borderBottom: '1px solid var(--cream3)' }}>
                     <span style={{ ...eyebrow(), marginBottom: 8 }}>{obs.label}</span>
                     <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.75 }}>&ldquo;{obs.text}&rdquo;</div>
                   </div>
                 ))}
+
                 <div style={{ background: 'var(--ink)', borderRadius: 14, padding: '28px 30px', marginTop: 28 }}>
                   <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase' as const, color: 'rgba(232,132,26,0.7)', marginBottom: 10, display: 'block' }}>
-                    This week&apos;s question
+                    Something to sit with
                   </span>
                   <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white', lineHeight: 1.3, marginBottom: 8 }}>
                     {(mirrorData.question as string) ?? ''}
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(254,252,248,0.4)', lineHeight: 1.6 }}>
-                    Sit with this over the week. Let it surface in your reflections.
+                    Let it surface in your reflections this week.
                   </div>
                 </div>
+
                 <div style={{ marginTop: 24, textAlign: 'center' }}>
                   <button onClick={() => generateAiInsight(journalEntries)} style={btnOutline}>Refresh mirror</button>
                 </div>
               </div>
             ) : (
               <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Ready to generate your mirror.</div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>You have {journalEntries.length} entries. The AI will analyse them now.</div>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Ready to build your mirror.</div>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>You have {journalEntries.length} entries. FHP will read them now.</div>
                 <button onClick={() => generateAiInsight(journalEntries)} style={btnPrimary}>Generate my mirror →</button>
               </div>
             )}
@@ -748,10 +762,6 @@ export default function Home() {
           .desktop-sidebar { display: none !important; }
           .mobile-nav { display: block !important; }
           main { padding: 28px 20px 90px !important; }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.2); }
         }
       ` }} />
     </div>

@@ -276,52 +276,56 @@ export default function Home() {
       <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
 
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <img src="/logo.png" alt="Foundation High Performance" style={{ width: 160, height: 'auto', margin: '0 auto', display: 'block' }} />
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <img src="/logo.png" alt="Foundation High Performance" style={{ width: 220, height: 'auto', margin: '0 auto', display: 'block' }} />
           </div>
 
-          {/* STEP 1 — Reflection first */}
+          {/* STEP 1 — Name first, then reflections */}
           {obStep === 1 && (
             <div>
               <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', marginBottom: 6, textAlign: 'center', lineHeight: 1.1 }}>
                 Welcome to FHP.
               </h1>
-              <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 28 }}>
+              <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
                 Understand how you actually prepare, respond and perform.
               </p>
 
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
-                  Think about a recent time you performed really well. What was going on before it?
-                </div>
-                <VoiceBtn onClick={() => toggleRecording(setFirstReflection1, firstReflection1)} />
-                <textarea
-                  value={firstReflection1}
-                  onChange={e => setFirstReflection1(e.target.value)}
-                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
-                  placeholder="Speak or write here..."
-                />
-              </div>
-
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
-                  Think about a time you weren&apos;t quite yourself. What was different?
-                </div>
-                <VoiceBtn onClick={() => toggleRecording(setFirstReflection2, firstReflection2)} />
-                <textarea
-                  value={firstReflection2}
-                  onChange={e => setFirstReflection2(e.target.value)}
-                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
-                  placeholder="Speak or write here..."
-                />
-              </div>
-
               <input
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 14, display: 'block' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 24, display: 'block' }}
                 placeholder="Your first name"
                 value={athleteName}
                 onChange={e => setAthleteName(e.target.value)}
               />
+
+              {athleteName.trim() && (
+                <>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
+                      {athleteName.split(' ')[0]}, think about a recent time you performed really well. What was going on before it?
+                    </div>
+                    <VoiceBtn onClick={() => toggleRecording(setFirstReflection1, firstReflection1)} />
+                    <textarea
+                      value={firstReflection1}
+                      onChange={e => setFirstReflection1(e.target.value)}
+                      style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
+                      placeholder="Speak or write here..."
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
+                      Think about a time you weren&apos;t quite yourself. What was different?
+                    </div>
+                    <VoiceBtn onClick={() => toggleRecording(setFirstReflection2, firstReflection2)} />
+                    <textarea
+                      value={firstReflection2}
+                      onChange={e => setFirstReflection2(e.target.value)}
+                      style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
+                      placeholder="Speak or write here..."
+                    />
+                  </div>
+                </>
+              )}
 
               <button
                 onClick={handleBegin}

@@ -1,235 +1,103 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { lessons, type Lesson } from '@/lib/lessons'
+import { sendOTP, verifyOTP, getSession, signOut } from '@/lib/auth'
+import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens, saveToolResponse } from '@/lib/athlete'
+import { createClient } from '@/lib/supabase'
 
-type Page = 'home' | 'lesson' | 'journal' | 'mirror'
+type AuthStage = 'enter_email' | 'enter_code' | 'authenticated'
+type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'home'
 
-const FORMSPREE_URL = 'https://formspree.io/f/mlgvdppd'
-
-const PROMPTS = [
-  'What mattered most today?',
-  'Where did pressure show up?',
-  'What gave you confidence?',
-  'Did my behaviour match my standards?',
-  'What is one thing to carry into tomorrow?',
-]
-
-function getWeekNumber(): number {
-  const stored = localStorage.getItem('fhp_start_date')
-  if (!stored) {
-    localStorage.setItem('fhp_start_date', new Date().toISOString())
-    return 1
-  }
-  const start = new Date(stored)
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7))
-  return Math.min(diff + 1, 4)
-}
-
-// ── SHARED STYLES ──
 const eyebrow = (color = 'var(--ink3)'): React.CSSProperties => ({
-  fontFamily: 'Barlow Condensed',
-  fontSize: 9,
-  fontWeight: 600,
-  letterSpacing: '0.28em',
-  textTransform: 'uppercase' as const,
-  color,
-  marginBottom: 10,
-  display: 'block',
+  fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600,
+  letterSpacing: '0.28em', textTransform: 'uppercase' as const,
+  color, marginBottom: 10, display: 'block',
 })
 
 const btnPrimary: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '11px 22px',
-  fontFamily: 'Barlow Condensed',
-  fontSize: 10,
-  fontWeight: 500,
-  letterSpacing: '0.2em',
-  textTransform: 'uppercase' as const,
-  cursor: 'pointer',
-  borderRadius: 7,
-  background: 'var(--orange)',
-  border: '1.5px solid var(--orange)',
-  color: 'white',
-  transition: 'all 0.13s',
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '11px 22px', fontFamily: 'Barlow Condensed', fontSize: 10,
+  fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase' as const,
+  cursor: 'pointer', borderRadius: 7, background: 'var(--orange)',
+  border: '1.5px solid var(--orange)', color: 'white', transition: 'all 0.13s',
 }
 
 const btnOutline: React.CSSProperties = {
-  ...btnPrimary,
-  background: 'transparent',
-  border: '1.5px solid var(--cream4)',
-  color: 'var(--ink3)',
+  ...btnPrimary, background: 'transparent',
+  border: '1.5px solid var(--cream4)', color: 'var(--ink3)',
 }
 
 const card: React.CSSProperties = {
-  background: 'var(--white)',
-  border: '1px solid var(--cream3)',
-  borderRadius: 14,
-  padding: '24px',
-}
-
-const section: React.CSSProperties = {
-  marginBottom: 32,
-  paddingBottom: 32,
-  borderBottom: '1px solid var(--cream3)',
+  background: 'var(--white)', border: '1px solid var(--cream3)',
+  borderRadius: 14, padding: '24px',
 }
 
 export default function Home() {
-  const [onboarded, setOnboarded] = useState(false)
-  const [obStep, setObStep] = useState(1)
+  const [authStage, setAuthStage] = useState<AuthStage>('enter_email')
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [athleteId, setAthleteId] = useState('')
   const [athleteName, setAthleteName] = useState('')
-  const [athleteEmail, setAthleteEmail] = useState('')
-  const [page, setPage] = useState<Page>('home')
-  const [journalText, setJournalText] = useState('')
-  const [journalPrompt, setJournalPrompt] = useState(PROMPTS[0])
-  const [journalSaved, setJournalSaved] = useState(false)
-  const [journalEntries, setJournalEntries] = useState<{text: string, prompt: string, date: string}[]>([])
-  const [currentWeek, setCurrentWeek] = useState(1)
-  const [aiInsight, setAiInsight] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
-  const [mirrorData, setMirrorData] = useState<Record<string, unknown> | null>(null)
+  const [nameInput, setNameInput] = useState('')
+  const [screen, setScreen] = useState<AppScreen>('fhp_picture')
+  const [completedScreens, setCompletedScreens] = useState<Set<string>>(new Set())
+  const [reflection1, setReflection1] = useState('')
+  const [reflection2, setReflection2] = useState('')
+  const [earlyMirror, setEarlyMirror] = useState('')
+  const [mirrorLoading, setMirrorLoading] = useState(false)
+  const [myEdge, setMyEdge] = useState<Record<string, string>>({})
+  const [secondMirror, setSecondMirror] = useState('')
   const [isRecording, setIsRecording] = useState(false)
-  const [voiceSupported, setVoiceSupported] = useState(true)
-  const [firstReflection1, setFirstReflection1] = useState('')
-  const [firstReflection2, setFirstReflection2] = useState('')
   const recognitionRef = useRef<any>(null)
-  const mainRef = useRef<HTMLElement>(null)
-
-  const activeLesson: Lesson | null =
-    lessons.find(l => l.week === `Week ${currentWeek}` && l.status === 'published') ??
-    lessons.find(l => l.status === 'published') ??
-    null
 
   useEffect(() => {
-    const saved = localStorage.getItem('fhp_athlete_name')
-    if (saved) {
-      setAthleteName(saved)
-      setOnboarded(true)
-      setCurrentWeek(getWeekNumber())
+    async function checkSession() {
+      const session = await getSession()
+      if (session) {
+        setAthleteId(session.user.id)
+        setAuthStage('authenticated')
+        const completed = await getCompletedScreens(session.user.id)
+        setCompletedScreens(completed)
+        const supabase = createClient()
+        const { data } = await supabase.from('athletes').select('name').eq('id', session.user.id).single()
+        if (data?.name) {
+          setAthleteName(data.name)
+          setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
+        } else {
+          setScreen('fhp_picture')
+        }
+      }
     }
-    const entries = JSON.parse(localStorage.getItem('fhp_journal') || '[]')
-    setJournalEntries(entries)
-    const savedInsight = localStorage.getItem('fhp_mirror_insight')
-    if (savedInsight) setAiInsight(savedInsight)
-    const savedSummary = localStorage.getItem('fhp_mirror_summary')
-    if (savedSummary) {
-      try { setMirrorData(JSON.parse(savedSummary)) } catch {}
-    }
+    checkSession()
   }, [])
 
-  useEffect(() => {
-    if (mainRef.current) mainRef.current.scrollTop = 0
-  }, [page])
-
-  async function handleBegin() {
-    if (!athleteName.trim()) return
-    localStorage.setItem('fhp_athlete_name', athleteName.trim())
-
-    const entries = []
-    if (firstReflection1.trim()) {
-      entries.push({
-        text: firstReflection1.trim(),
-        prompt: 'Think about a recent time you performed really well. What was going on before it?',
-        date: new Date().toISOString()
-      })
-    }
-    if (firstReflection2.trim()) {
-      entries.push({
-        text: firstReflection2.trim(),
-        prompt: "Think about a time you weren't quite yourself. What was different?",
-        date: new Date().toISOString()
-      })
-    }
-    if (entries.length > 0) {
-      localStorage.setItem('fhp_journal', JSON.stringify(entries))
-      setJournalEntries(entries)
-    }
-    setObStep(2)
-  }
-
-  async function handleEnter() {
-    if (athleteEmail.trim() && athleteEmail.includes('@')) {
-      localStorage.setItem('fhp_athlete_email', athleteEmail.trim())
-      try {
-        await fetch(FORMSPREE_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: athleteName, email: athleteEmail, source: 'FHP Academy' }),
-        })
-      } catch {}
-    }
-    setCurrentWeek(getWeekNumber())
-    setOnboarded(true)
-  }
-
-  async function generateAiInsight(entries: typeof journalEntries) {
-    if (entries.length < 1) return
-    setAiLoading(true)
-    try {
-      const response = await fetch('/api/mirror', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries }),
-      })
-      if (!response.ok) throw new Error('API failed')
-      const parsed = await response.json()
-      setAiInsight(parsed.snippet || '')
-      setMirrorData(parsed)
-      localStorage.setItem('fhp_mirror_insight', parsed.snippet || '')
-      localStorage.setItem('fhp_mirror_summary', JSON.stringify(parsed))
-    } catch (e) {
-      console.error('AI error:', e)
-    }
-    setAiLoading(false)
-  }
-
-  function saveJournal() {
-    if (!journalText.trim()) return
-    if (isRecording) stopRecording()
-    const entries = JSON.parse(localStorage.getItem('fhp_journal') || '[]')
-    const newEntry = { text: journalText, prompt: journalPrompt, date: new Date().toISOString() }
-    entries.unshift(newEntry)
-    localStorage.setItem('fhp_journal', JSON.stringify(entries))
-    setJournalEntries(entries)
-    setJournalSaved(true)
-    generateAiInsight(entries)
-  }
-
-  function stopRecording() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      recognitionRef.current = null
-    }
-    setIsRecording(false)
-  }
-
   function startRecording(setter: (v: string) => void, current: string) {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) { setVoiceSupported(false); return }
-    const recognition = new SpeechRecognition()
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    const recognition = new SR()
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-AU'
-    let finalTranscript = current
-    recognition.onresult = (event: any) => {
+    let final = current
+    recognition.onresult = (e: any) => {
       let interim = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript
-        if (event.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + t
-        } else { interim = t }
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) { final += (final ? ' ' : '') + t } else { interim = t }
       }
-      setter(finalTranscript + (interim ? ' ' + interim : ''))
+      setter(final + (interim ? ' ' + interim : ''))
     }
-    recognition.onerror = () => { setIsRecording(false); recognitionRef.current = null }
     recognition.onend = () => { setIsRecording(false); recognitionRef.current = null }
     recognitionRef.current = recognition
     recognition.start()
     setIsRecording(true)
+  }
+
+  function stopRecording() {
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null }
+    setIsRecording(false)
   }
 
   function toggleRecording(setter: (v: string) => void, current: string) {
@@ -237,24 +105,12 @@ export default function Home() {
     startRecording(setter, current)
   }
 
-  function navTo(p: Page) { setPage(p) }
-
-  const firstName = athleteName.split(' ')[0] || 'there'
-  const wordCount = journalText.trim() ? journalText.trim().split(/\s+/).length : 0
-
-  const navItems = [
-    { id: 'home', label: 'Home' },
-    { id: 'lesson', label: 'This week' },
-    { id: 'journal', label: 'Reflect' },
-    { id: 'mirror', label: 'My mirror' },
-  ]
-
-  const VoiceBtn = ({ onClick }: { onClick: () => void }) => (
-    <button onClick={onClick} style={{
+  const VoiceBtn = ({ setter, current }: { setter: (v: string) => void, current: string }) => (
+    <button onClick={() => toggleRecording(setter, current)} style={{
       display: 'inline-flex', alignItems: 'center', gap: 8,
       padding: '9px 16px', fontFamily: 'Barlow Condensed', fontSize: 10,
       fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-      cursor: 'pointer', borderRadius: 7,
+      cursor: 'pointer', borderRadius: 7, marginBottom: 8,
       background: isRecording ? 'var(--orange)' : 'var(--white)',
       border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
       color: isRecording ? 'white' : 'var(--ink3)',
@@ -264,510 +120,435 @@ export default function Home() {
     </button>
   )
 
-  const privacyNote = (
-    <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-      Your reflections are private. Only the AI reads them to help you notice patterns. No coach, parent or school can see what you write.
-    </p>
-  )
+  async function handleSendOTP() {
+    if (!email.trim()) return
+    setAuthLoading(true)
+    setAuthError('')
+    const { error } = await sendOTP(email.trim())
+    if (error) { setAuthError('Could not send code. Check your email and try again.'); setAuthLoading(false); return }
+    setAuthStage('enter_code')
+    setAuthLoading(false)
+  }
 
-  // ── ONBOARDING ──
-  if (!onboarded) {
+  async function handleVerifyOTP() {
+    if (!code.trim()) return
+    setAuthLoading(true)
+    setAuthError('')
+    const { data, error } = await verifyOTP(email.trim(), code.trim())
+    if (error || !data.session) { setAuthError('Incorrect code. Please try again.'); setAuthLoading(false); return }
+    setAthleteId(data.session.user.id)
+    setAuthStage('authenticated')
+    const completed = await getCompletedScreens(data.session.user.id)
+    setCompletedScreens(completed)
+    const supabase = createClient()
+    const { data: athlete } = await supabase.from('athletes').select('name').eq('id', data.session.user.id).single()
+    if (athlete?.name) {
+      setAthleteName(athlete.name)
+      setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
+    } else {
+      setScreen('fhp_picture')
+    }
+    setAuthLoading(false)
+  }
+
+  async function handleSaveName() {
+    if (!nameInput.trim() || !athleteId) return
+    await getOrCreateAthlete(athleteId, nameInput.trim())
+    setAthleteName(nameInput.trim())
+    await completeScreen(athleteId, 0, 'name_saved')
+    setScreen('onboarding_reflection')
+  }
+
+  async function handleSaveReflections() {
+    if (!reflection1.trim()) return
+    await saveReflection(athleteId, 0, 'onboarding_positive', reflection1.trim(), 'Think about a recent performance where you felt genuinely good. What was happening?')
+    if (reflection2.trim()) {
+      await saveReflection(athleteId, 0, 'onboarding_contrast', reflection2.trim(), "Think about a performance where you weren't quite yourself. What felt different?")
+    }
+    await completeScreen(athleteId, 0, 'onboarding_reflection')
+    setCompletedScreens(prev => new Set([...prev, '0:onboarding_reflection']))
+    setMirrorLoading(true)
+    setScreen('early_mirror')
+    try {
+      const res = await fetch('/api/mirror', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          athleteId,
+          entries: [
+            { text: reflection1, prompt: 'Recent good performance', type: 'onboarding_positive' },
+            ...(reflection2 ? [{ text: reflection2, prompt: 'Off performance', type: 'onboarding_contrast' }] : [])
+          ],
+          stage: 'early',
+          athleteName
+        })
+      })
+      const data = await res.json()
+      setEarlyMirror(data.snippet || '')
+    } catch {}
+    setMirrorLoading(false)
+  }
+
+  const firstName = athleteName.split(' ')[0] || 'there'
+
+  // ── AUTH ──
+  if (authStage !== 'authenticated') {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
-
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
             <img src="/logo.png" alt="Foundation High Performance" style={{ width: 220, height: 'auto', margin: '0 auto', display: 'block' }} />
           </div>
-
-          {/* STEP 1 — Name first, then reflections */}
-          {obStep === 1 && (
+          {authStage === 'enter_email' && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', marginBottom: 6, textAlign: 'center', lineHeight: 1.1 }}>
-                Welcome to FHP.
-              </h1>
-              <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
-                Understand how you actually prepare, respond and perform.
-              </p>
-
-              <input
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 24, display: 'block' }}
-                placeholder="Your first name"
-                value={athleteName}
-                onChange={e => setAthleteName(e.target.value)}
-              />
-
-              {athleteName.trim() && (
-                <>
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
-                      {athleteName.split(' ')[0]}, think about a recent time you performed really well. What was going on before it?
-                    </div>
-                    <VoiceBtn onClick={() => toggleRecording(setFirstReflection1, firstReflection1)} />
-                    <textarea
-                      value={firstReflection1}
-                      onChange={e => setFirstReflection1(e.target.value)}
-                      style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
-                      placeholder="Speak or write here..."
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 10 }}>
-                      Think about a time you weren&apos;t quite yourself. What was different?
-                    </div>
-                    <VoiceBtn onClick={() => toggleRecording(setFirstReflection2, firstReflection2)} />
-                    <textarea
-                      value={firstReflection2}
-                      onChange={e => setFirstReflection2(e.target.value)}
-                      style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', marginTop: 8 }}
-                      placeholder="Speak or write here..."
-                    />
-                  </div>
-                </>
-              )}
-
-              <button
-                onClick={handleBegin}
-                disabled={!athleteName.trim()}
-                style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: athleteName.trim() ? 1 : 0.5 }}>
-                Continue →
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 8 }}>Welcome to FHP.</h1>
+              <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.7, marginBottom: 28 }}>Enter your email to get started. We'll send you a code.</p>
+              <input type="email" placeholder="Your email address" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendOTP()}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 12, display: 'block', boxSizing: 'border-box' }} />
+              {authError && <p style={{ fontSize: 12, color: '#c0392b', marginBottom: 10 }}>{authError}</p>}
+              <button onClick={handleSendOTP} disabled={authLoading || !email.trim()} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: authLoading || !email.trim() ? 0.5 : 1 }}>
+                {authLoading ? 'Sending...' : 'Send code →'}
               </button>
-
-              {privacyNote}
+              <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 16 }}>FHP operators can access your reflections for research and beta review purposes. This is a closed beta.</p>
             </div>
           )}
-
-          {/* STEP 2 — How it works + email */}
-          {obStep === 2 && (
+          {authStage === 'enter_code' && (
             <div>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 30, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, textAlign: 'center', lineHeight: 1.1 }}>
-                Here&apos;s how it works.
-              </h1>
-              <p style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
-                The more honestly you use this, the more useful it becomes.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-                {[
-                  ['01', 'Learn something', 'Each week covers one idea about how you prepare and perform under pressure.'],
-                  ['02', 'Try it and reflect', 'At the end of each day, take five minutes to note what actually happened.'],
-                  ['03', 'Notice what keeps showing up', 'Over time FHP helps you see patterns in how you think and perform.'],
-                ].map(([num, title, desc]) => (
-                  <div key={num} style={{ display: 'flex', gap: 16, padding: '14px', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 10 }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 20, fontWeight: 600, color: 'var(--orange)', flexShrink: 0, lineHeight: 1, paddingTop: 2 }}>{num}</div>
-                    <div>
-                      <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{title}</div>
-                      <div style={{ fontSize: 12.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.6 }}>{desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <input
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 14, display: 'block' }}
-                placeholder="Your email — to save your progress"
-                type="email"
-                value={athleteEmail}
-                onChange={e => setAthleteEmail(e.target.value)}
-              />
-
-              <button onClick={handleEnter} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>
-                Start →
+              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 8 }}>Check your email.</h1>
+              <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.7, marginBottom: 28 }}>We sent a 6-digit code to <strong>{email}</strong>. Check your spam if it doesn't arrive.</p>
+              <input type="text" placeholder="6-digit code" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleVerifyOTP()} maxLength={6}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 22, letterSpacing: '0.2em', color: 'var(--ink)', outline: 'none', marginBottom: 12, display: 'block', boxSizing: 'border-box', textAlign: 'center' }} />
+              {authError && <p style={{ fontSize: 12, color: '#c0392b', marginBottom: 10 }}>{authError}</p>}
+              <button onClick={handleVerifyOTP} disabled={authLoading || code.length < 6} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: authLoading || code.length < 6 ? 0.5 : 1 }}>
+                {authLoading ? 'Verifying...' : 'Continue →'}
               </button>
-
-              {privacyNote}
+              <button onClick={() => { setAuthStage('enter_email'); setCode(''); setAuthError('') }} style={{ ...btnOutline, width: '100%', justifyContent: 'center', marginTop: 8 }}>Back</button>
             </div>
           )}
-
-          <div style={{ display: 'flex', gap: 5, justifyContent: 'center', marginTop: 20 }}>
-            {[1, 2].map(i => (
-              <div key={i} style={{ width: 18, height: 2, borderRadius: 1, background: i <= obStep ? 'var(--orange)' : 'var(--cream3)', transition: 'background 0.2s' }} />
-            ))}
-          </div>
         </div>
       </div>
     )
   }
 
-  // ── MAIN APP ──
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', maxWidth: 1000, margin: '0 auto' }}>
-
-      {/* SIDEBAR */}
-      <nav style={{ width: 184, flexShrink: 0, background: 'var(--white)', borderRight: '1px solid var(--cream3)', display: 'flex', flexDirection: 'column', padding: '28px 0 24px', position: 'sticky', top: 0, height: '100vh' }} className="desktop-sidebar">
-        <div style={{ padding: '0 18px 22px', borderBottom: '1px solid var(--cream3)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo.png" alt="FHP" style={{ width: 32, height: 'auto', display: 'block' }} />
-          <div style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.2em', color: 'var(--ink3)', textTransform: 'uppercase', lineHeight: 1.5 }}>Athlete<br />Platform</div>
-        </div>
-
-        {navItems.map(({ id, label }) => (
-          <div key={id} onClick={() => navTo(id as Page)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', cursor: 'pointer', fontFamily: 'Barlow Condensed', fontSize: 13.5, letterSpacing: '0.04em', color: page === id ? 'var(--orange)' : 'var(--ink3)', borderLeft: `2px solid ${page === id ? 'var(--orange)' : 'transparent'}`, marginBottom: 2, background: page === id ? 'var(--orange-t)' : 'transparent' }}>
-            {label}
+  // ── NAME CAPTURE ──
+  if (screen === 'fhp_picture' && !athleteName) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <img src="/logo.png" alt="Foundation High Performance" style={{ width: 180, height: 'auto', margin: '0 auto', display: 'block' }} />
           </div>
-        ))}
-
-        <div style={{ margin: '20px 18px 0', padding: '14px', background: 'var(--cream)', borderRadius: 8 }}>
-          <div style={{ ...eyebrow(), marginBottom: 8, fontSize: 8 }}>Program progress</div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-            {[1, 2, 3, 4].map(w => (
-              <div key={w} style={{ flex: 1, height: 3, borderRadius: 2, background: w <= currentWeek ? 'var(--orange)' : 'var(--cream3)' }} />
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--ink4)' }}>Week {currentWeek} of 4</div>
-        </div>
-
-        <div style={{ marginTop: 'auto', padding: '16px 18px 0', borderTop: '1px solid var(--cream3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', border: '1.5px solid var(--orange)', background: 'var(--orange-t)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Barlow Condensed', fontSize: 11, fontWeight: 600, color: 'var(--orange)', flexShrink: 0 }}>
-              {firstName[0]?.toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.2 }}>{athleteName}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink4)' }}>Week {currentWeek} of 4</div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* MAIN */}
-      <main ref={mainRef} style={{ flex: 1, padding: '48px 40px 100px', overflowY: 'auto', minWidth: 0 }}>
-
-        {/* HOME */}
-        {page === 'home' && (
-          <div>
-            <div style={{ marginBottom: 36 }}>
-              <span style={eyebrow('var(--orange)')}>Week {currentWeek}</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.0 }}>
-                Good morning, {firstName}.
-              </h1>
-            </div>
-
-            <div style={section}>
-              <span style={eyebrow()}>This week&apos;s focus</span>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.15, marginBottom: 16 }}>
-                {activeLesson?.focusTitle ?? 'No lesson published yet.'}
-              </div>
-              <button onClick={() => navTo('lesson')} style={btnPrimary}>Open lesson →</button>
-            </div>
-
-            <div style={section}>
-              <span style={eyebrow()}>This week&apos;s action</span>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.45 }}>
-                {activeLesson?.action ?? '—'}
-              </div>
-            </div>
-
-            <div style={section}>
-              <span style={eyebrow()}>
-                From your mirror
-                <span style={{ fontSize: 9, color: 'var(--ink4)', fontWeight: 400, marginLeft: 8, letterSpacing: '0.08em', textTransform: 'none' as const }}>
-                  — builds as you reflect
-                </span>
-              </span>
-              {journalEntries.length === 0 ? (
-                <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>
-                  Your mirror builds as you reflect. Start by adding your first entry today.
-                </div>
-              ) : journalEntries.length < 3 ? (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 12 }}>
-                    {3 - journalEntries.length} more {3 - journalEntries.length === 1 ? 'entry' : 'entries'} before patterns start to emerge.
-                  </div>
-                  <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                    {[1, 2, 3].map(i => (
-                      <div key={i} style={{ width: 32, height: 3, borderRadius: 2, background: i <= journalEntries.length ? 'var(--orange)' : 'var(--cream3)' }} />
-                    ))}
-                    <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 4 }}>{journalEntries.length} / 3</span>
-                  </div>
-                </div>
-              ) : aiLoading ? (
-                <div style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink4)', fontStyle: 'italic' }}>Reading your entries...</div>
-              ) : (
-                <>
-                  <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 12 }}>
-                    &ldquo;{aiInsight || 'Keep reflecting — your mirror is building.'}&rdquo;
-                  </div>
-                  <button onClick={() => navTo('mirror')} style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--orange)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                    Read your full mirror →
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div>
-              <span style={eyebrow()}>Today</span>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 400, color: 'var(--ink)', marginBottom: 14 }}>
-                Five minutes. One honest entry.
-              </div>
-              <button onClick={() => navTo('journal')} style={btnPrimary}>Reflect now →</button>
-            </div>
-          </div>
-        )}
-
-        {/* LESSON */}
-        {page === 'lesson' && (
-          <div style={{ maxWidth: 580 }}>
-            {activeLesson ? (
-              <>
-                <div style={{ marginBottom: 36 }}>
-                  <span style={eyebrow('var(--orange)')}>{activeLesson.week} · Lesson</span>
-                  <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 38, fontWeight: 300, letterSpacing: '0.02em', color: 'var(--ink)', lineHeight: 1.05 }}>
-                    {activeLesson.title}
-                  </h1>
-                </div>
-
-                <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, marginBottom: 28 }}>{activeLesson.intro}</p>
-
-                {activeLesson.video ? (
-                  <div style={{ position: 'relative', width: '100%', maxWidth: 300, margin: '0 auto 32px', borderRadius: 10, overflow: 'hidden', aspectRatio: '9/16', background: '#111', border: '1px solid var(--cream3)' }}>
-                    <iframe src={activeLesson.video} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
-                  </div>
-                ) : (
-                  <div style={{ width: '100%', maxWidth: 300, margin: '0 auto 32px', aspectRatio: '9/16', borderRadius: 10, border: '1px solid var(--cream3)', background: 'var(--cream2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink4)' }}>Video coming soon</div>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: 28 }}>
-                  <span style={eyebrow()}>The framework</span>
-                  {activeLesson.framework.split('\n\n').map((para, i) => (
-                    <p key={i} style={{ fontSize: 14, fontWeight: para.includes('—') ? 500 : 300, color: para.includes('—') ? 'var(--ink)' : 'var(--ink2)', lineHeight: 1.8, marginBottom: 12 }}>{para}</p>
-                  ))}
-                </div>
-
-                <div style={{ marginBottom: 28 }}>
-                  <span style={eyebrow()}>Your exercise</span>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '15px 18px', fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 12 }}>
-                    {activeLesson.prompt}
-                  </div>
-                  <textarea style={{ width: '100%', background: 'var(--cream)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 13.5, fontWeight: 300, color: 'var(--ink)', resize: 'none', minHeight: 90, outline: 'none', lineHeight: 1.7 }}
-                    placeholder="Write your response here..." />
-                </div>
-
-                {activeLesson.pdfUrl && (
-                  <div style={{ marginBottom: 28 }}>
-                    <span style={eyebrow()}>Download</span>
-                    <a href={activeLesson.pdfUrl} target="_blank" rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 18px', textDecoration: 'none' }}>
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="var(--ink4)" strokeWidth="1.3"><path d="M3.5 2h8l4 4v10a1 1 0 01-1 1H3.5a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M11.5 2v5h4" /></svg>
-                      <div>
-                        <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, fontWeight: 500, color: 'var(--ink)' }}>{activeLesson.pdfLabel}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 2 }}>Tap to download</div>
-                      </div>
-                    </a>
-                  </div>
-                )}
-
-                <div style={{ background: 'var(--ink)', borderRadius: 14, padding: '28px 30px' }}>
-                  <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase' as const, color: 'rgba(232,132,26,0.8)', marginBottom: 10, display: 'block' }}>
-                    {activeLesson.week} commitment
-                  </span>
-                  <div style={{ fontFamily: 'Barlow Condensed', fontSize: 17, fontWeight: 300, color: 'white', lineHeight: 1.3, marginBottom: 16 }}>
-                    {activeLesson.commitQ}
-                  </div>
-                  <textarea style={{ width: '100%', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, color: 'white', resize: 'none', minHeight: 64, outline: 'none', lineHeight: 1.6 }}
-                    placeholder="This week, regardless of the result, I will..." />
-                  <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => navTo('home')} style={btnPrimary}>Save and return →</button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Week {currentWeek} lesson coming soon.</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* REFLECT */}
-        {page === 'journal' && (
-          <div style={{ maxWidth: 540 }}>
-            <div style={{ marginBottom: 36 }}>
-              <span style={eyebrow('var(--orange)')}>Daily reflection</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, color: 'var(--ink)' }}>Reflect.</h1>
-              <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.6 }}>
-                Your reflections are private. Only the AI reads them to help you notice patterns over time.
-              </p>
-            </div>
-
-            <span style={eyebrow()}>Choose a prompt</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
-              {PROMPTS.map(q => (
-                <button key={q} onClick={() => setJournalPrompt(q)}
-                  style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase' as const, padding: '6px 12px', border: `1px solid ${journalPrompt === q ? 'var(--orange)' : 'var(--cream4)'}`, borderRadius: 40, color: journalPrompt === q ? 'var(--orange)' : 'var(--ink3)', background: journalPrompt === q ? 'var(--orange-t)' : 'transparent', cursor: 'pointer' }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-
-            {!journalSaved ? (
-              <>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 19, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.25, marginBottom: 16 }}>{journalPrompt}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <VoiceBtn onClick={() => { if (isRecording) { stopRecording(); return }; startRecording(setJournalText, journalText) }} />
-                  {isRecording && <span style={{ fontSize: 12, color: 'var(--orange)', fontStyle: 'italic' }}>Listening...</span>}
-                </div>
-                <textarea value={journalText} onChange={e => setJournalText(e.target.value)}
-                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '18px 20px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.8, resize: 'none', minHeight: 160, outline: 'none', color: 'var(--ink)' }}
-                  placeholder="Speak or write here. This space is yours." />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-                  <span style={{ fontSize: 11, color: 'var(--ink4)' }}>{wordCount} words</span>
-                  <button onClick={saveJournal} style={btnPrimary}>Save →</button>
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 22, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Saved.</div>
-                <div style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, maxWidth: 300, margin: '0 auto 24px' }}>
-                  {journalEntries.length >= 3
-                    ? 'Your mirror is updating.'
-                    : `${3 - journalEntries.length} more ${3 - journalEntries.length === 1 ? 'entry' : 'entries'} before patterns start to emerge.`}
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button onClick={() => { setJournalSaved(false); setJournalText('') }} style={btnOutline}>Add another</button>
-                  <button onClick={() => { setPage('mirror'); setJournalSaved(false); setJournalText('') }} style={btnPrimary}>View my mirror →</button>
-                </div>
-              </div>
-            )}
-
-            {!journalSaved && journalEntries.length > 0 && (
-              <div style={{ marginTop: 40 }}>
-                <span style={eyebrow()}>Recent entries</span>
-                {journalEntries.slice(0, 3).map((entry, i) => (
-                  <div key={i} style={{ padding: '12px 0', borderBottom: '1px solid var(--cream3)' }}>
-                    <div style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink4)', marginBottom: 4 }}>
-                      {new Date(entry.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' })}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.5 }}>
-                      {entry.text.slice(0, 120)}{entry.text.length > 120 ? '...' : ''}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* MIRROR */}
-        {page === 'mirror' && (
-          <div style={{ maxWidth: 580 }}>
-            <div style={{ marginBottom: 36 }}>
-              <span style={eyebrow('var(--orange)')}>Your mirror</span>
-              <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 42, fontWeight: 300, color: 'var(--ink)' }}>What FHP notices.</h1>
-              <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', marginTop: 6, lineHeight: 1.6 }}>
-                The more honestly you reflect, the more accurately this builds a picture of how you actually operate.
-              </p>
-            </div>
-
-            {journalEntries.length === 0 ? (
-              <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 10 }}>Nothing here yet.</div>
-                <div style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.75, maxWidth: 300, margin: '0 auto 20px' }}>
-                  Start with one honest reflection. That&apos;s enough to begin.
-                </div>
-                <button onClick={() => navTo('journal')} style={btnPrimary}>Reflect now →</button>
-              </div>
-            ) : journalEntries.length < 3 ? (
-              <div>
-                <div style={{ ...card, textAlign: 'center', marginBottom: 16 }}>
-                  <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 10 }}>The picture is forming.</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.75, maxWidth: 320, margin: '0 auto 20px' }}>
-                    It&apos;s too early to call anything a pattern yet. Keep checking in and FHP will start to notice what keeps showing up.
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-                    {[1, 2, 3].map(i => (
-                      <div key={i} style={{ width: 28, height: 3, borderRadius: 2, background: i <= journalEntries.length ? 'var(--orange)' : 'var(--cream3)' }} />
-                    ))}
-                    <span style={{ fontSize: 11, color: 'var(--ink4)', marginLeft: 4 }}>{journalEntries.length} of 3</span>
-                  </div>
-                  <button onClick={() => navTo('journal')} style={btnPrimary}>Add a reflection →</button>
-                </div>
-
-                {journalEntries.length > 0 && (
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--cream3)', borderLeft: '2px solid var(--orange)', borderRadius: '0 8px 8px 0', padding: '16px 20px' }}>
-                    <span style={{ ...eyebrow(), marginBottom: 8 }}>One thing worth noticing from today</span>
-                    <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.75 }}>
-                      &ldquo;It&apos;s too early to call this a pattern — but keep checking in this week and we&apos;ll see whether it appears again.&rdquo;
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : aiLoading ? (
-              <div style={{ ...card, textAlign: 'center', padding: '48px 24px' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Reading your entries...</div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)' }}>This takes a moment.</div>
-              </div>
-            ) : mirrorData ? (
-              <div>
-                <div style={{ marginBottom: 28 }}>
-                  <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--ink4)', marginBottom: 14, display: 'block' }}>
-                    Based on {journalEntries.length} {journalEntries.length === 1 ? 'entry' : 'entries'}
-                  </span>
-                  <p style={{ fontSize: 15, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.85 }}>
-                    {(mirrorData.narrative as string) ?? ''}
-                  </p>
-                </div>
-
-                <div style={{ height: 1, background: 'var(--cream3)', margin: '28px 0' }} />
-
-                <span style={eyebrow()}>What&apos;s showing up</span>
-                {((mirrorData.observations as Array<{label: string, text: string}>) ?? []).map((obs, i) => (
-                  <div key={i} style={{ padding: '18px 0', borderBottom: '1px solid var(--cream3)' }}>
-                    <span style={{ ...eyebrow(), marginBottom: 8 }}>{obs.label}</span>
-                    <div style={{ fontSize: 14, fontStyle: 'italic', fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.75 }}>&ldquo;{obs.text}&rdquo;</div>
-                  </div>
-                ))}
-
-                <div style={{ background: 'var(--ink)', borderRadius: 14, padding: '28px 30px', marginTop: 28 }}>
-                  <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase' as const, color: 'rgba(232,132,26,0.7)', marginBottom: 10, display: 'block' }}>
-                    Something to sit with
-                  </span>
-                  <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white', lineHeight: 1.3, marginBottom: 8 }}>
-                    {(mirrorData.question as string) ?? ''}
-                  </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 300, color: 'rgba(254,252,248,0.4)', lineHeight: 1.6 }}>
-                    Let it surface in your reflections this week.
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 24, textAlign: 'center' }}>
-                  <button onClick={() => generateAiInsight(journalEntries)} style={btnOutline}>Refresh mirror</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Ready to build your mirror.</div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, lineHeight: 1.6 }}>You have {journalEntries.length} entries. FHP will read them now.</div>
-                <button onClick={() => generateAiInsight(journalEntries)} style={btnPrimary}>Generate my mirror →</button>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* MOBILE BOTTOM NAV */}
-      <div style={{ display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--white)', borderTop: '1px solid var(--cream3)', padding: '8px 0', zIndex: 50 }} className="mobile-nav">
-        <div style={{ display: 'flex', justifyContent: 'space-around', maxWidth: 500, margin: '0 auto' }}>
-          {navItems.map(({ id, label }) => (
-            <button key={id} onClick={() => navTo(id as Page)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Barlow Condensed', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: page === id ? 'var(--orange)' : 'var(--ink4)', fontWeight: page === id ? 600 : 400 }}>
-              <div style={{ width: 3, height: 3, borderRadius: '50%', background: page === id ? 'var(--orange)' : 'transparent', marginBottom: 2 }} />
-              {label}
-            </button>
-          ))}
+          <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', textAlign: 'center', marginBottom: 8 }}>What's your name?</h1>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.7, marginBottom: 24 }}>Just your first name is fine.</p>
+          <input placeholder="Your first name" value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+            style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream4)', borderRadius: 7, padding: '13px 15px', fontFamily: 'Barlow', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 12, display: 'block', boxSizing: 'border-box' }} />
+          <button onClick={handleSaveName} disabled={!nameInput.trim()} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: nameInput.trim() ? 1 : 0.5 }}>Continue →</button>
         </div>
       </div>
+    )
+  }
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media (max-width: 640px) {
-          .desktop-sidebar { display: none !important; }
-          .mobile-nav { display: block !important; }
-          main { padding: 28px 20px 90px !important; }
-        }
-      ` }} />
+  // ── FHP PICTURE ──
+  if (screen === 'fhp_picture') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 20px', display: 'block' }} />
+            <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
+            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>What you're building.</h1>
+            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>Over four weeks, FHP builds a clearer picture of how you perform.</p>
+          </div>
+          {[
+            { num: 1, label: 'My Edge', sub: 'When I am at my best', done: completedScreens.has('1:w1_completion') },
+            { num: 2, label: 'My Preparation', sub: 'What helps me get ready', done: completedScreens.has('2:w2_completion') },
+            { num: 3, label: 'My Contribution', sub: 'What I bring to others', done: completedScreens.has('3:w3_completion') },
+            { num: 4, label: 'Play Free', sub: 'Where my attention goes under pressure', done: completedScreens.has('4:w4_completion') },
+          ].map(item => (
+            <div key={item.num} style={{ ...card, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, opacity: item.done ? 1 : 0.5 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.num}</span>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink4)', marginTop: 2 }}>{item.sub}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ ...card, marginBottom: 32, opacity: 0.4 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 4 }}>Final FHP Reflection</div>
+            <div style={{ fontSize: 12, color: 'var(--ink4)' }}>What FHP has noticed across your four weeks</div>
+            <div style={{ marginTop: 8, height: 3, background: 'var(--cream3)', borderRadius: 2 }}>
+              <div style={{ height: '100%', background: 'var(--orange)', borderRadius: 2, width: '0%', transition: 'width 0.5s' }} />
+            </div>
+          </div>
+          <button onClick={() => setScreen('onboarding_reflection')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Start Week 1 →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── ONBOARDING REFLECTION ──
+  if (screen === 'onboarding_reflection') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
+            <span style={eyebrow('var(--orange)')}>Week 1 — Know Your Edge</span>
+          </div>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Before anything else — think about a recent performance where you felt genuinely good. It doesn't need to have been your best result. Just a time where things were working.</p>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What was actually going well?</div>
+            <VoiceBtn setter={setReflection1} current={reflection1} />
+            <textarea value={reflection1} onChange={e => setReflection1(e.target.value)}
+              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+              placeholder="Say it however you'd explain it to someone you trust..." />
+          </div>
+          {reflection1.trim().length > 10 && (
+            <div style={{ marginBottom: 28 }}>
+              <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 12 }}>Now think about a performance where you weren't quite yourself. What felt different?</p>
+              <VoiceBtn setter={setReflection2} current={reflection2} />
+              <textarea value={reflection2} onChange={e => setReflection2(e.target.value)}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="No need to pull it apart. Just notice what changed..." />
+            </div>
+          )}
+          <button onClick={handleSaveReflections} disabled={reflection1.trim().length < 10}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: reflection1.trim().length < 10 ? 0.5 : 1 }}>Continue →</button>
+          <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 16 }}>Your reflections are accessible to FHP operators for research and beta review purposes.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── EARLY MIRROR ──
+  if (screen === 'early_mirror') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>FHP noticed</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>One thing worth noticing.</h2>
+          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+            {mirrorLoading
+              ? <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>Reading what you wrote...</p>
+              : <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>"{earlyMirror || "It's too early to call anything a pattern yet. But what you've described is worth holding onto this week."}"</p>
+            }
+          </div>
+          <button onClick={() => setScreen('week1_video')} disabled={mirrorLoading}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: mirrorLoading ? 0.5 : 1 }}>Watch this week's video →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── WEEK 1 VIDEO ──
+  if (screen === 'week1_video') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>Week 1</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Know Your Edge</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 24 }}>What makes you effective?</p>
+          <div style={{ width: '100%', aspectRatio: '9/16', maxWidth: 280, margin: '0 auto 28px', borderRadius: 12, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--cream3)' }}>
+            <div style={{ textAlign: 'center', padding: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Video placeholder</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white', lineHeight: 1.3 }}>Know Your Edge</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>3-4 minutes</div>
+            </div>
+          </div>
+          <button onClick={() => { completeScreen(athleteId, 1, 'w1_video'); setScreen('my_edge') }}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue to My Edge →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── MY EDGE ──
+  if (screen === 'my_edge') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>Week 1 — My Edge</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Build your edge.</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Based on what you've just thought about. One or two things is enough.</p>
+          {[
+            { key: 'what_i_bring', label: "What are one or two things you bring when you're playing well?" },
+            { key: 'when_it_shows_up', label: 'What do you notice about yourself when those things are showing up?' },
+            { key: 'want_to_keep', label: "What are you already doing that you want to keep?" },
+            { key: 'im_building', label: "What's one thing you'd like to keep getting better at?" },
+          ].map(field => (
+            <div key={field.key} style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{field.label}</div>
+              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [field.key]: v }))} current={myEdge[field.key] || ''} />
+              <textarea value={myEdge[field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [field.key]: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it in your own words..." />
+            </div>
+          ))}
+          <button onClick={async () => {
+            for (const [field, value] of Object.entries(myEdge)) {
+              if (value?.trim()) await saveToolResponse(athleteId, 1, 'my_edge', field, value.trim())
+            }
+            await completeScreen(athleteId, 1, 'w1_my_edge')
+            setScreen('second_mirror')
+          }} disabled={!myEdge.what_i_bring?.trim()}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: myEdge.what_i_bring?.trim() ? 1 : 0.5 }}>Save my edge →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── SECOND MIRROR ──
+  if (screen === 'second_mirror') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>FHP noticed</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
+          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+              "{secondMirror || "You've described what you bring and what you want to keep building. That's a useful starting point. Keep paying attention to when those qualities show up this week."}"
+            </p>
+          </div>
+          <button onClick={() => setScreen('experiment')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>This week's experiment →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── EXPERIMENT ──
+  if (screen === 'experiment') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Get another view.</h2>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 28 }}>Sometimes other people can see things in us that we don't notice ourselves. This week, ask one person you trust two simple questions.</p>
+          <div style={{ ...card, marginBottom: 28 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>"When do you think I'm at my best?"</div>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>"What do you see me doing when I'm playing well?"</div>
+            <div style={{ fontSize: 12, color: 'var(--ink4)', marginTop: 12, lineHeight: 1.6 }}>Coach. Teammate. Parent. Someone whose opinion you trust.</div>
+          </div>
+          <button onClick={async () => { await completeScreen(athleteId, 1, 'w1_experiment'); setScreen('home') }}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Got it →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── EVENT REFLECTION ──
+  if (screen === 'event_reflection') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
+          <span style={eyebrow('var(--orange)')}>After training or competition</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>What happened?</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Answer what you can. Voice or text.</p>
+          {[
+            { key: 'ev_what_worked', label: 'What worked well today?' },
+            { key: 'ev_felt_like_self', label: 'When did you feel most like yourself?' },
+            { key: 'ev_repeat', label: "What did you do that you'd want to repeat?" },
+            { key: 'ev_adjust', label: "What's one thing you might adjust next time?" },
+          ].map(q => (
+            <div key={q.key} style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{q.label}</div>
+              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Speak or write here..." />
+            </div>
+          ))}
+          <button onClick={async () => {
+            const map: Record<string, string> = { ev_what_worked: 'event_what_worked', ev_felt_like_self: 'event_felt_like_self', ev_repeat: 'event_repeat', ev_adjust: 'event_adjust' }
+            for (const [key, type] of Object.entries(map)) {
+              const val = myEdge[key]
+              if (val?.trim()) await saveReflection(athleteId, 1, type, val.trim())
+            }
+            await completeScreen(athleteId, 1, 'w1_event_reflection')
+            setScreen('sounding_board')
+          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── SOUNDING BOARD ──
+  if (screen === 'sounding_board') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>Sounding board</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Did you get a chance to ask someone?</h2>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
+            <button onClick={() => setScreen('fuller_mirror')} style={{ ...btnOutline, flex: 1, justifyContent: 'center' }}>Not yet</button>
+            <button onClick={() => setMyEdge(prev => ({ ...prev, sb_asked: 'yes' }))} style={{ ...btnPrimary, flex: 1, justifyContent: 'center' }}>Yes</button>
+          </div>
+          {myEdge.sb_asked === 'yes' && (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>What did they say about when you're at your best?</div>
+                <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, sb_response: v }))} current={myEdge.sb_response || ''} />
+                <textarea value={myEdge.sb_response || ''} onChange={e => setMyEdge(prev => ({ ...prev, sb_response: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="What they noticed..." />
+              </div>
+              <button onClick={async () => {
+                if (myEdge.sb_response?.trim()) await saveReflection(athleteId, 1, 'sounding_board', myEdge.sb_response.trim())
+                await completeScreen(athleteId, 1, 'w1_sounding_board')
+                setScreen('fuller_mirror')
+              }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue →</button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── FULLER MIRROR ──
+  if (screen === 'fuller_mirror') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>FHP Mirror</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What FHP has noticed.</h2>
+          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+              "{earlyMirror || "Keep reflecting — FHP is building a clearer picture of how you perform."}"
+            </p>
+          </div>
+          <button onClick={async () => { await completeScreen(athleteId, 1, 'w1_fuller_mirror'); setScreen('home') }}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Back to home →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── HOME ──
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px 90px' }}>
+      <div style={{ maxWidth: 420, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+          <img src="/logo.png" alt="FHP" style={{ width: 60, height: 'auto' }} />
+          <button onClick={() => signOut().then(() => { setAuthStage('enter_email'); setAthleteId(''); setAthleteName(''); setScreen('fhp_picture') })}
+            style={{ ...btnOutline, padding: '6px 14px', fontSize: 9 }}>Sign out</button>
+        </div>
+        <span style={eyebrow()}>Week 1</span>
+        <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 36, fontWeight: 300, color: 'var(--ink)', marginBottom: 6 }}>Know Your Edge.</h1>
+        <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 32 }}>Notice when you feel most like yourself as an athlete this week.</p>
+        <div style={{ ...card, marginBottom: 16 }}>
+          <span style={eyebrow()}>Your focus this week</span>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 16 }}>Ask someone: <em>"When do you think I'm at my best?"</em></p>
+          <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, color: 'var(--ink4)', letterSpacing: '0.1em' }}>MY EDGE — BUILDING</div>
+        </div>
+        <div style={{ ...card }}>
+          <span style={eyebrow()}>After training or competition</span>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>Come back here to add a reflection on what happened.</p>
+          <button onClick={() => setScreen('event_reflection')} style={{ ...btnPrimary }}>Add a reflection →</button>
+        </div>
+      </div>
     </div>
   )
 }

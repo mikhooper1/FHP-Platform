@@ -186,14 +186,14 @@ export default function Home() {
   }
 
   async function handleSaveReflections() {
-    console.log('handleSaveReflections called, reflection1:', reflection1)
+    
     if (!reflection1.trim()) return
     await saveReflection(athleteId, 0, 'onboarding_positive', reflection1.trim(), 'Think about a recent performance where you felt genuinely good. What was happening?')
     if (reflection2.trim()) {
       await saveReflection(athleteId, 0, 'onboarding_contrast', reflection2.trim(), "Think about a performance where you weren't quite yourself. What felt different?")
     }
     setMirrorLoading(true)
-    console.log('Firing mirror API...')
+    
     try {
       const res = await fetch('/api/mirror', {
         method: 'POST',
@@ -209,9 +209,9 @@ export default function Home() {
         })
       })
       const data = await res.json()
-      console.log('Early mirror API response:', data)
+      
       const snippet = data.snippet || data.content?.[0]?.text || ''
-console.log('Snippet extracted:', snippet)
+
 setEarlyMirror(snippet)
 if (snippet) {
   await saveMirrorOutput(athleteId, 1, 'after_onboarding_reflection', { snippet })
@@ -429,14 +429,14 @@ if (snippet) {
             }
             await completeScreen(athleteId, 1, 'w1_my_edge')
             // Generate second mirror
-            console.log('Starting second mirror generation...')
+            
             try {
               const edgeEntries = Object.entries(myEdge)
                 .filter(([, v]) => v?.trim())
                 .map(([k, v]) => ({ text: v, type: `my_edge_${k}`, prompt: k }))
               const { getAthleteHistory } = await import('@/lib/athlete')
               const history = await getAthleteHistory(athleteId, 1)
-              console.log('History loaded:', history.reflections.length, 'reflections')
+              
               const historicEntries = history.reflections.map((r: any) => ({ text: r.response, type: r.type, prompt: r.prompt }))
               const res = await fetch('/api/mirror', {
                 method: 'POST',

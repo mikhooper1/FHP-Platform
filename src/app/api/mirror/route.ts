@@ -86,7 +86,7 @@ The athlete's name is ${athleteName}.`
     if (!response.ok) {
       const error = await response.text()
       console.error('Anthropic API error:', response.status, error)
-      return NextResponse.json({ snippet: `API Error ${response.status}: ${error.slice(0, 100)}` })
+      return NextResponse.json({ snippet: 'There isn\'t a clear pattern here yet.' })
     }
 
     const data = await response.json()

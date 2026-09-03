@@ -90,6 +90,20 @@ export default function Home() {
             const output = secondMirrorData.output_json as { snippet: string }
             setSecondMirror(output.snippet || '')
           }
+          // Load My Edge data
+          console.log('Loading My Edge for athlete:', session.user.id)
+          const { data: edgeData, error: edgeError } = await supabase
+            .from('tool_responses')
+            .select('field_name, value')
+            .eq('athlete_id', session.user.id)
+            .eq('week', 1)
+            .eq('tool_name', 'my_edge')
+          console.log('Edge data:', edgeData, 'Error:', edgeError)
+          if (edgeData) {
+            const edge: Record<string, string> = {}
+            edgeData.forEach((r: any) => { edge[r.field_name] = r.value })
+            setMyEdge(edge)
+          }
           setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
         } else {
           setScreen('fhp_picture')
@@ -353,7 +367,7 @@ if (snippet) {
           )}
           <button onClick={handleSaveReflections} disabled={reflection1.trim().length < 10}
             style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: reflection1.trim().length < 10 ? 0.5 : 1 }}>Continue →</button>
-          <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 16 }}>Your reflections are accessible to FHP operators for research and beta review purposes.</p>
+          <p style={{ fontSize: 11, color: 'var(--ink4)', textAlign: 'center', lineHeight: 1.6, marginTop: 16 }}>Your reflections can be accessed by FHP operators for research and beta review. This is a closed beta.</p>
         </div>
       </div>
     )
@@ -666,7 +680,11 @@ if (snippet) {
         <div style={{ ...card, marginBottom: 16 }}>
           <span style={eyebrow()}>Your focus this week</span>
           <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.7, marginBottom: 16 }}>Ask someone: <em>"When do you think I'm at my best?"</em></p>
-          <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, color: 'var(--ink4)', letterSpacing: '0.1em' }}>MY EDGE — BUILDING</div>
+          {myEdge.what_i_bring ? (
+            <div style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.7, fontStyle: 'italic' }}>"{myEdge.what_i_bring}"</div>
+          ) : (
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, color: 'var(--ink4)', letterSpacing: '0.1em' }}>MY EDGE — BUILDING</div>
+          )}
         </div>
         <div style={{ ...card }}>
           <span style={eyebrow()}>After training or competition</span>

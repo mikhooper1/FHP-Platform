@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { sendOTP, verifyOTP, getSession, signOut } from '@/lib/auth'
-import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens, saveToolResponse } from '@/lib/athlete'
+import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens, saveToolResponse, saveMirrorOutput } from '@/lib/athlete'
 import { createClient } from '@/lib/supabase'
 
 type AuthStage = 'enter_email' | 'enter_code' | 'authenticated'
@@ -64,6 +64,19 @@ export default function Home() {
         const { data } = await supabase.from('athletes').select('name').eq('id', session.user.id).single()
         if (data?.name) {
           setAthleteName(data.name)
+          // Load stored mirror output
+          const { data: mirrorData } = await supabase
+            .from('mirror_outputs')
+            .select('output_json')
+            .eq('athlete_id', session.user.id)
+            .eq('trigger_screen', 'after_onboarding_reflection')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (mirrorData?.output_json) {
+            const output = mirrorData.output_json as { snippet: string }
+            setEarlyMirror(output.snippet || '')
+          }
           setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
         } else {
           setScreen('fhp_picture')
@@ -160,15 +173,14 @@ export default function Home() {
   }
 
   async function handleSaveReflections() {
+    console.log('handleSaveReflections called, reflection1:', reflection1)
     if (!reflection1.trim()) return
     await saveReflection(athleteId, 0, 'onboarding_positive', reflection1.trim(), 'Think about a recent performance where you felt genuinely good. What was happening?')
     if (reflection2.trim()) {
       await saveReflection(athleteId, 0, 'onboarding_contrast', reflection2.trim(), "Think about a performance where you weren't quite yourself. What felt different?")
     }
-    await completeScreen(athleteId, 0, 'onboarding_reflection')
-    setCompletedScreens(prev => new Set([...prev, '0:onboarding_reflection']))
     setMirrorLoading(true)
-    setScreen('early_mirror')
+    console.log('Firing mirror API...')
     try {
       const res = await fetch('/api/mirror', {
         method: 'POST',
@@ -184,9 +196,18 @@ export default function Home() {
         })
       })
       const data = await res.json()
-      setEarlyMirror(data.snippet || '')
-    } catch {}
+      const snippet = data.snippet || ''
+setEarlyMirror(snippet)
+if (snippet) {
+  await saveMirrorOutput(athleteId, 1, 'after_onboarding_reflection', { snippet })
+}
+    } catch (e) {
+      console.error('Mirror error:', e)
+    }
+    await completeScreen(athleteId, 0, 'onboarding_reflection')
+    setCompletedScreens(prev => new Set([...prev, '0:onboarding_reflection']))
     setMirrorLoading(false)
+    setScreen('early_mirror')
   }
 
   const firstName = athleteName.split(' ')[0] || 'there'

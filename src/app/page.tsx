@@ -209,7 +209,9 @@ export default function Home() {
         })
       })
       const data = await res.json()
-      const snippet = data.snippet || ''
+      console.log('Early mirror API response:', data)
+      const snippet = data.snippet || data.content?.[0]?.text || ''
+console.log('Snippet extracted:', snippet)
 setEarlyMirror(snippet)
 if (snippet) {
   await saveMirrorOutput(athleteId, 1, 'after_onboarding_reflection', { snippet })

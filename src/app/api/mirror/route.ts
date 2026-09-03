@@ -37,7 +37,7 @@ Rules:
 - Should create mild curiosity
 - Tone: calm, specific, understated
 
-If the evidence is too thin to say anything specific, say: "It's too early to call anything a pattern yet. But what you've described is worth holding onto this week."
+Always find one specific thing from what they actually wrote and reflect it back. Never be generic. Even from one entry you can say what you noticed. The caution is about not calling it a pattern — not about saying nothing. Never use the phrase "there isn't a clear pattern here yet" at the early stage.
 
 The athlete's name is ${athleteName}.`
     } else {
@@ -71,13 +71,13 @@ The athlete's name is ${athleteName}.`
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 300,
         system: systemPrompt,
         messages: [
           {
             role: 'user',
-            content: `Here are the athlete's reflections:\n\n${entriesText}\n\nProvide your mirror response now. Plain text only — no headers, no bullet points, no formatting.`
+            content: `Here are the athlete's reflections:\n\n${entriesText}\n\nWrite your mirror response now. You must pick something specific from what they wrote and reflect it back. Do not say "there isn't a clear pattern here yet" — that phrase is banned. Do not be generic. Find one specific thing they said and say what you noticed about it. Two sentences maximum. Plain text only.`
           }
         ]
       })
@@ -85,8 +85,8 @@ The athlete's name is ${athleteName}.`
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('Anthropic API error:', error)
-      return NextResponse.json({ snippet: 'There isn\'t a clear pattern here yet.' })
+      console.error('Anthropic API error:', response.status, error)
+      return NextResponse.json({ snippet: `API Error ${response.status}: ${error.slice(0, 100)}` })
     }
 
     const data = await response.json()

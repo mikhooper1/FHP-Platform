@@ -6,13 +6,13 @@ export async function getOrCreateAthlete(userId: string, name: string) {
     .from('athletes')
     .select('*')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
   if (existing) return existing
   const { data, error } = await supabase
     .from('athletes')
     .insert({ id: userId, name, program_start_date: new Date().toISOString() })
     .select()
-    .single()
+    .maybeSingle()
   if (error) throw error
   return data
 }

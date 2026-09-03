@@ -6,7 +6,7 @@ import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens
 import { createClient } from '@/lib/supabase'
 
 type AuthStage = 'enter_email' | 'enter_code' | 'authenticated'
-type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'home'
+type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'w1_completion' | 'home'
 
 const eyebrow = (color = 'var(--ink3)'): React.CSSProperties => ({
   fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600,
@@ -61,7 +61,7 @@ export default function Home() {
         const completed = await getCompletedScreens(session.user.id)
         setCompletedScreens(completed)
         const supabase = createClient()
-        const { data } = await supabase.from('athletes').select('name').eq('id', session.user.id).single()
+        const { data } = await supabase.from('athletes').select('name').eq('id', session.user.id).maybeSingle()
         if (data?.name) {
           setAthleteName(data.name)
           // Load stored mirror output
@@ -76,6 +76,19 @@ export default function Home() {
           if (mirrorData?.output_json) {
             const output = mirrorData.output_json as { snippet: string }
             setEarlyMirror(output.snippet || '')
+          }
+          // Load second mirror
+          const { data: secondMirrorData } = await supabase
+            .from('mirror_outputs')
+            .select('output_json')
+            .eq('athlete_id', session.user.id)
+            .eq('trigger_screen', 'after_my_edge')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (secondMirrorData?.output_json) {
+            const output = secondMirrorData.output_json as { snippet: string }
+            setSecondMirror(output.snippet || '')
           }
           setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
         } else {
@@ -154,7 +167,7 @@ export default function Home() {
     const completed = await getCompletedScreens(data.session.user.id)
     setCompletedScreens(completed)
     const supabase = createClient()
-    const { data: athlete } = await supabase.from('athletes').select('name').eq('id', data.session.user.id).single()
+    const { data: athlete } = await supabase.from('athletes').select('name').eq('id', data.session.user.id).maybeSingle()
     if (athlete?.name) {
       setAthleteName(athlete.name)
       setScreen(completed.has('0:onboarding_reflection') ? 'home' : 'fhp_picture')
@@ -413,6 +426,33 @@ if (snippet) {
               if (value?.trim()) await saveToolResponse(athleteId, 1, 'my_edge', field, value.trim())
             }
             await completeScreen(athleteId, 1, 'w1_my_edge')
+            // Generate second mirror
+            try {
+              const edgeEntries = Object.entries(myEdge)
+                .filter(([, v]) => v?.trim())
+                .map(([k, v]) => ({ text: v, type: `my_edge_${k}`, prompt: k }))
+              const res = await fetch('/api/mirror', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  athleteId,
+                  entries: [
+                    { text: reflection1, type: 'onboarding_positive' },
+                    ...(reflection2 ? [{ text: reflection2, type: 'onboarding_contrast' }] : []),
+                    ...edgeEntries
+                  ],
+                  stage: 'standard',
+                  athleteName
+                })
+              })
+              const data = await res.json()
+              if (data.snippet) {
+                setSecondMirror(data.snippet)
+                await saveMirrorOutput(athleteId, 1, 'after_my_edge', { snippet: data.snippet })
+              }
+            } catch (e) {
+              console.error('Second mirror error:', e)
+            }
             setScreen('second_mirror')
           }} disabled={!myEdge.what_i_bring?.trim()}
             style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: myEdge.what_i_bring?.trim() ? 1 : 0.5 }}>Save my edge →</button>
@@ -519,6 +559,26 @@ if (snippet) {
               <button onClick={async () => {
                 if (myEdge.sb_response?.trim()) await saveReflection(athleteId, 1, 'sounding_board', myEdge.sb_response.trim())
                 await completeScreen(athleteId, 1, 'w1_sounding_board')
+                // Generate fuller mirror
+                try {
+                  const { reflections: allReflections, toolResponses } = await import('@/lib/athlete').then(m => m.getAthleteHistory(athleteId, 1))
+                  const entries = [
+                    ...allReflections.map((r: any) => ({ text: r.response, type: r.type, prompt: r.prompt })),
+                    ...toolResponses.map((t: any) => ({ text: t.value, type: `${t.tool_name}_${t.field_name}`, prompt: t.field_name }))
+                  ]
+                  const res = await fetch('/api/mirror', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ athleteId, entries, stage: 'standard', athleteName })
+                  })
+                  const data = await res.json()
+                  if (data.snippet) {
+                    setEarlyMirror(data.snippet)
+                    await saveMirrorOutput(athleteId, 1, 'after_event_reflection', { snippet: data.snippet })
+                  }
+                } catch (e) {
+                  console.error('Fuller mirror error:', e)
+                }
                 setScreen('fuller_mirror')
               }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue →</button>
             </>
@@ -540,13 +600,51 @@ if (snippet) {
               "{earlyMirror || "Keep reflecting — FHP is building a clearer picture of how you perform."}"
             </p>
           </div>
-          <button onClick={async () => { await completeScreen(athleteId, 1, 'w1_fuller_mirror'); setScreen('home') }}
-            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Back to home →</button>
+          <button onClick={async () => { await completeScreen(athleteId, 1, 'w1_fuller_mirror'); setScreen('w1_completion') }}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>See your FHP Picture →</button>
         </div>
       </div>
     )
   }
 
+   // ── WEEK 1 COMPLETION ──
+  if (screen === 'w1_completion') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
+          <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
+          <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
+          <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 48, fontWeight: 300, color: 'var(--ink)', marginBottom: 8, letterSpacing: '0.02em' }}>1 of 4</h1>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 40 }}>You've started building a clearer picture of what your best looks like.</p>
+
+          {[
+            { num: 1, label: 'My Edge', sub: 'When I am at my best', done: true },
+            { num: 2, label: 'My Preparation', sub: 'What helps me get ready', done: false },
+            { num: 3, label: 'My Contribution', sub: 'What I bring to others', done: false },
+            { num: 4, label: 'Play Free', sub: 'Where my attention goes under pressure', done: false },
+          ].map(item => (
+            <div key={item.num} style={{ background: 'var(--white)', border: `1px solid ${item.done ? 'var(--orange)' : 'var(--cream3)'}`, borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', opacity: item.done ? 1 : 0.4 }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.done ? '✓' : item.num}</span>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink4)', marginTop: 2 }}>{item.sub}</div>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 16, padding: '16px 20px', background: 'var(--cream3)', borderRadius: 10, marginBottom: 32 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 12, color: 'var(--ink3)', letterSpacing: '0.15em', marginBottom: 6 }}>NEXT — WEEK 2</div>
+            <div style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.6 }}>How do you prepare so more of that version of you shows up?</div>
+          </div>
+
+          <button onClick={async () => { await completeScreen(athleteId, 1, 'w1_completion'); setScreen('home') }}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue →</button>
+        </div>
+      </div>
+    )
+  }
   // ── HOME ──
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px 90px' }}>

@@ -427,18 +427,22 @@ if (snippet) {
             }
             await completeScreen(athleteId, 1, 'w1_my_edge')
             // Generate second mirror
+            console.log('Starting second mirror generation...')
             try {
               const edgeEntries = Object.entries(myEdge)
                 .filter(([, v]) => v?.trim())
                 .map(([k, v]) => ({ text: v, type: `my_edge_${k}`, prompt: k }))
+              const { getAthleteHistory } = await import('@/lib/athlete')
+              const history = await getAthleteHistory(athleteId, 1)
+              console.log('History loaded:', history.reflections.length, 'reflections')
+              const historicEntries = history.reflections.map((r: any) => ({ text: r.response, type: r.type, prompt: r.prompt }))
               const res = await fetch('/api/mirror', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   athleteId,
                   entries: [
-                    { text: reflection1, type: 'onboarding_positive' },
-                    ...(reflection2 ? [{ text: reflection2, type: 'onboarding_contrast' }] : []),
+                    ...historicEntries,
                     ...edgeEntries
                   ],
                   stage: 'standard',

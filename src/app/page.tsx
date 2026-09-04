@@ -75,6 +75,18 @@ export default function Home() {
             const output = secondMirrorData.output_json as { snippet: string }
             setSecondMirror(output.snippet || '')
           }
+          const { data: finalMirrorData } = await supabase
+            .from('mirror_outputs')
+            .select('output_json')
+            .eq('athlete_id', session.user.id)
+            .eq('trigger_screen', 'final_mirror')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (finalMirrorData?.output_json) {
+            const output = finalMirrorData.output_json as { snippet: string }
+            setEarlyMirror(output.snippet || '')
+          }
           const { data: edgeData } = await supabase.from('tool_responses').select('field_name, value').eq('athlete_id', session.user.id).eq('week', 1).eq('tool_name', 'my_edge')
           if (edgeData) {
             const edge: Record<string, string> = {}
@@ -1323,13 +1335,13 @@ export default function Home() {
             style={{ ...btnOutline, padding: '6px 14px', fontSize: 9 }}>Sign out</button>
         </div>
         <span style={eyebrow()}>
-          {completedScreens.has('3:w3_completion') ? 'Week 4' : completedScreens.has('2:w2_completion') ? 'Week 3' : completedScreens.has('1:w1_completion') ? 'Week 2' : 'Week 1'}
+          {completedScreens.has('4:w4_completion') ? 'FHP Complete' : completedScreens.has('3:w3_completion') ? 'Week 4' : completedScreens.has('2:w2_completion') ? 'Week 3' : completedScreens.has('1:w1_completion') ? 'Week 2' : 'Week 1'}
         </span>
         <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 36, fontWeight: 300, color: 'var(--ink)', marginBottom: 6 }}>
-          {completedScreens.has('3:w3_completion') ? 'Play Free.' : completedScreens.has('2:w2_completion') ? 'Play Your Part.' : completedScreens.has('1:w1_completion') ? 'Train How You Want to Play.' : 'Know Your Edge.'}
+          {completedScreens.has('4:w4_completion') ? 'Your FHP Picture.' : completedScreens.has('3:w3_completion') ? 'Play Free.' : completedScreens.has('2:w2_completion') ? 'Play Your Part.' : completedScreens.has('1:w1_completion') ? 'Train How You Want to Play.' : 'Know Your Edge.'}
         </h1>
         <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 32 }}>
-          {completedScreens.has('3:w3_completion') ? 'Where does your attention go when the game gets loud?' : completedScreens.has('2:w2_completion') ? 'Understand what you bring to the people around you.' : completedScreens.has('1:w1_completion') ? 'Practise the player you want to be.' : 'Notice when you feel most like yourself as an athlete this week.'}
+          {completedScreens.has('4:w4_completion') ? 'Four weeks complete. FHP has built a picture of how you perform.' : completedScreens.has('3:w3_completion') ? 'Where does your attention go when the game gets loud?' : completedScreens.has('2:w2_completion') ? 'Understand what you bring to the people around you.' : completedScreens.has('1:w1_completion') ? 'Practise the player you want to be.' : 'Notice when you feel most like yourself as an athlete this week.'}
         </p>
         <div style={{ ...card, marginBottom: 16 }}>
           <span style={eyebrow()}>Your focus this week</span>
@@ -1352,6 +1364,11 @@ export default function Home() {
           {completedScreens.has('3:w3_completion') && !completedScreens.has('4:w4_completion') && (
             <div style={{ marginTop: 12 }}>
               <button onClick={() => setScreen('w4_opening')} style={{ ...btnPrimary, fontSize: 9 }}>Start Week 4 →</button>
+            </div>
+          )}
+          {completedScreens.has('4:w4_completion') && (
+            <div style={{ marginTop: 12 }}>
+              <button onClick={() => setScreen('final_mirror')} style={{ ...btnPrimary, fontSize: 9 }}>View your FHP Picture →</button>
             </div>
           )}
         </div>

@@ -91,14 +91,14 @@ export default function Home() {
             setSecondMirror(output.snippet || '')
           }
           // Load My Edge data
-          console.log('Loading My Edge for athlete:', session.user.id)
+          
           const { data: edgeData, error: edgeError } = await supabase
             .from('tool_responses')
             .select('field_name, value')
             .eq('athlete_id', session.user.id)
             .eq('week', 1)
             .eq('tool_name', 'my_edge')
-          console.log('Edge data:', edgeData, 'Error:', edgeError)
+          
           if (edgeData) {
             const edge: Record<string, string> = {}
             edgeData.forEach((r: any) => { edge[r.field_name] = r.value })

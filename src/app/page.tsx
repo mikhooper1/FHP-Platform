@@ -6,7 +6,7 @@ import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens
 import { createClient } from '@/lib/supabase'
 
 type AuthStage = 'enter_email' | 'enter_code' | 'authenticated'
-type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'w1_completion' | 'w2_opening' | 'w2_video' | 'train_it' | 'w2_mirror' | 'w2_experiment' | 'w2_event_reflection' | 'w2_completion' | 'w3_opening' | 'w3_video' | 'play_your_part' | 'w3_mirror' | 'w3_experiment' | 'w3_event_reflection' | 'w3_completion' | 'home'
+type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'w1_completion' | 'w2_opening' | 'w2_video' | 'train_it' | 'w2_mirror' | 'w2_experiment' | 'w2_event_reflection' | 'w2_completion' | 'w3_opening' | 'w3_video' | 'play_your_part' | 'w3_mirror' | 'w3_experiment' | 'w3_event_reflection' | 'w3_completion' | 'w4_opening' | 'w4_video' | 'play_free' | 'w4_mirror' | 'w4_experiment' | 'w4_event_reflection' | 'w4_completion' | 'final_mirror' | 'home'
 
 const eyebrow = (color = 'var(--ink3)'): React.CSSProperties => ({
   fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600,
@@ -1064,6 +1064,255 @@ export default function Home() {
     )
   }
 
+
+  // ── WEEK 4 OPENING ──
+  if (screen === 'w4_opening') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
+            <span style={eyebrow('var(--orange)')}>Week 4 — Play Free</span>
+          </div>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Think about a time when you felt completely in the game. You were not forcing things. You were just playing.</p>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What was happening? Where was your attention?</div>
+            <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r1: v }))} current={myEdge.w4_r1 || ''} />
+            <textarea value={myEdge.w4_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r1: e.target.value }))}
+              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+              placeholder="Say it however you would explain it to someone you trust..." />
+          </div>
+          {(myEdge.w4_r1 || '').trim().length > 10 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>Now think about a time when a mistake or the result pulled you away from that feeling. What happened next?</div>
+              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r2: v }))} current={myEdge.w4_r2 || ''} />
+              <textarea value={myEdge.w4_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r2: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="No need to pull it apart. Just notice what happened..." />
+            </div>
+          )}
+          <button onClick={async () => {
+            if ((myEdge.w4_r1 || '').trim().length < 10) return
+            await saveReflection(athleteId, 4, 'w4_opening_1', myEdge.w4_r1.trim(), 'What was happening when you felt completely in the game?')
+            if ((myEdge.w4_r2 || '').trim()) await saveReflection(athleteId, 4, 'w4_opening_2', myEdge.w4_r2.trim(), 'What happened when something pulled you away?')
+            await completeScreen(athleteId, 4, 'w4_opening')
+            setScreen('w4_video')
+          }} disabled={(myEdge.w4_r1 || '').trim().length < 10}
+            style={{ ...btnPrimary, width: '100%', justifyContent: 'center', opacity: (myEdge.w4_r1 || '').trim().length < 10 ? 0.5 : 1 }}>Continue</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- WEEK 4 VIDEO --
+  if (screen === 'w4_video') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>Week 4</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Play Free</h2>
+          <div style={{ width: '100%', aspectRatio: '9/16', maxWidth: 280, margin: '0 auto 28px', borderRadius: 12, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center', padding: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Video placeholder</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white' }}>Play Free</div>
+            </div>
+          </div>
+          <button onClick={() => { completeScreen(athleteId, 4, 'w4_video'); setScreen('play_free') }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue to Play Free</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- PLAY FREE --
+  if (screen === 'play_free') {
+    const pfFields = [
+      { key: 'when_in_game', label: 'When I am really in the game, my attention is on:' },
+      { key: 'when_attention_shifts', label: 'What tends to pull my attention away:' },
+      { key: 'how_i_notice', label: 'How I know when it has happened:' },
+      { key: 'my_reset', label: 'My reset - one simple cue:' },
+      { key: 'my_refocus', label: 'What I come back to:' },
+    ]
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>Week 4 - Play Free</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your attention map.</h2>
+          <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Notice. Reset. Refocus.</p>
+          {pfFields.map(field => (
+            <div key={field.key} style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>{field.label}</div>
+              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: v }))} current={myEdge['pf_' + field.key] || ''} />
+              <textarea value={myEdge['pf_' + field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it in your own words..." />
+            </div>
+          ))}
+          <button onClick={async () => {
+            for (const f of pfFields) {
+              const val = myEdge['pf_' + f.key]
+              if (val && val.trim()) await saveToolResponse(athleteId, 4, 'play_free', f.key, val.trim())
+            }
+            await completeScreen(athleteId, 4, 'w4_play_free')
+            try {
+              const { getAthleteHistory } = await import('@/lib/athlete')
+              const history = await getAthleteHistory(athleteId, 4)
+              const entries = [
+                ...history.reflections.map((r) => ({ text: r.response, type: r.type })),
+                ...history.toolResponses.map((t) => ({ text: t.value, type: t.tool_name + '_' + t.field_name }))
+              ]
+              const res = await fetch('/api/mirror', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ athleteId, entries, stage: 'standard', athleteName }) })
+              const data = await res.json()
+              if (data.snippet) { setSecondMirror(data.snippet); await saveMirrorOutput(athleteId, 4, 'after_play_free', { snippet: data.snippet }) }
+            } catch(e) { console.error(e) }
+            setScreen('w4_mirror')
+          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Save</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- WEEK 4 MIRROR --
+  if (screen === 'w4_mirror') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>FHP noticed</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What is starting to emerge.</h2>
+          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>"{secondMirror || "You have started mapping where your attention goes."}"</p>
+          </div>
+          <button onClick={() => setScreen('w4_experiment')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>This week experiment</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- WEEK 4 EXPERIMENT --
+  if (screen === 'w4_experiment') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <span style={eyebrow('var(--orange)')}>This week</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Notice. Reset. Refocus.</h2>
+          <div style={{ ...card, marginBottom: 28 }}>
+            <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7, marginBottom: 16 }}>If things are going well: notice it briefly, leave it alone, keep competing.</div>
+            <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7 }}>If you get knocked off: notice, reset, then ask what can I do next.</div>
+          </div>
+          <button onClick={async () => { await completeScreen(athleteId, 4, 'w4_experiment'); setScreen('home') }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Got it</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- WEEK 4 EVENT REFLECTION --
+  if (screen === 'w4_event_reflection') {
+    const w4evQs = [
+      { key: 'w4_ev1', label: 'When did you feel most free today?' },
+      { key: 'w4_ev2', label: 'What were you doing that seemed to help?' },
+      { key: 'w4_ev3', label: 'Did anything pull your attention away?' },
+      { key: 'w4_ev4', label: 'What did you do next?' },
+      { key: 'w4_ev5', label: 'Was there something that helped you reconnect?' },
+    ]
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>Back</button>
+          <span style={eyebrow('var(--orange)')}>Week 4 - After training or competition</span>
+          <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>What happened?</h2>
+          {w4evQs.map(q => (
+            <div key={q.key} style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, color: 'var(--ink)', marginBottom: 8 }}>{q.label}</div>
+              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Speak or write here..." />
+            </div>
+          ))}
+          <button onClick={async () => {
+            const w4map = { w4_ev1: 'w4_felt_free', w4_ev2: 'w4_what_helped', w4_ev3: 'w4_pulled_away', w4_ev4: 'w4_what_next', w4_ev5: 'w4_reconnected' }
+            for (const [key, type] of Object.entries(w4map)) {
+              const val = myEdge[key]
+              if (val && val.trim()) await saveReflection(athleteId, 4, type, val.trim())
+            }
+            await completeScreen(athleteId, 4, 'w4_event_reflection')
+            setScreen('w4_completion')
+          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- WEEK 4 COMPLETION --
+  if (screen === 'w4_completion') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
+          <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
+          <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
+          <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 48, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>4 of 4</h1>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 40 }}>You have now looked at what makes you effective, how you prepare, what you bring to others, and where your attention goes under pressure.</p>
+          {['My Edge', 'My Preparation', 'My Contribution', 'Play Free'].map((label, i) => (
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--orange)', borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: 'white' }}>v</span>
+              </div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
+            </div>
+          ))}
+          <button onClick={async () => {
+            await completeScreen(athleteId, 4, 'w4_completion')
+            setCompletedScreens(prev => new Set([...prev, '4:w4_completion']))
+            setMirrorLoading(true)
+            setScreen('final_mirror')
+            try {
+              const { getAthleteHistory } = await import('@/lib/athlete')
+              const history = await getAthleteHistory(athleteId, 4)
+              const entries = [
+                ...history.reflections.map((r: any) => ({ text: r.response, type: r.type })),
+                ...history.toolResponses.map((t: any) => ({ text: t.value, type: t.tool_name + '_' + t.field_name }))
+              ]
+              const res = await fetch('/api/mirror', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ athleteId, entries, stage: 'final', athleteName })
+              })
+              const data = await res.json()
+              if (data.snippet) {
+                setEarlyMirror(data.snippet)
+                await saveMirrorOutput(athleteId, 4, 'final_mirror', { snippet: data.snippet })
+              }
+            } catch(e) { console.error('Final mirror error:', e) }
+            setMirrorLoading(false)
+          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', marginTop: 24 }}>See what FHP noticed</button>
+        </div>
+      </div>
+    )
+  }
+
+  // -- FINAL MIRROR --
+  if (screen === 'final_mirror') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
+            <span style={eyebrow('var(--orange)')}>What FHP noticed</span>
+            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your FHP Picture.</h1>
+            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>Based only on what you recorded across four weeks.</p>
+          </div>
+          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+            {mirrorLoading
+              ? <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>FHP is reading everything you recorded...</p>
+              : <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.9, whiteSpace: 'pre-line' }}>{earlyMirror || 'Your reflections are building a picture.'}</p>
+            }
+          </div>
+          <button onClick={() => setScreen('home')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue</button>
+        </div>
+      </div>
+    )
+  }
+
   // ── HOME ──
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px 90px' }}>
@@ -1074,13 +1323,13 @@ export default function Home() {
             style={{ ...btnOutline, padding: '6px 14px', fontSize: 9 }}>Sign out</button>
         </div>
         <span style={eyebrow()}>
-          {completedScreens.has('2:w2_completion') ? 'Week 3' : completedScreens.has('1:w1_completion') ? 'Week 2' : 'Week 1'}
+          {completedScreens.has('3:w3_completion') ? 'Week 4' : completedScreens.has('2:w2_completion') ? 'Week 3' : completedScreens.has('1:w1_completion') ? 'Week 2' : 'Week 1'}
         </span>
         <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 36, fontWeight: 300, color: 'var(--ink)', marginBottom: 6 }}>
-          {completedScreens.has('2:w2_completion') ? 'Play Your Part.' : completedScreens.has('1:w1_completion') ? 'Train How You Want to Play.' : 'Know Your Edge.'}
+          {completedScreens.has('3:w3_completion') ? 'Play Free.' : completedScreens.has('2:w2_completion') ? 'Play Your Part.' : completedScreens.has('1:w1_completion') ? 'Train How You Want to Play.' : 'Know Your Edge.'}
         </h1>
         <p style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 32 }}>
-          {completedScreens.has('2:w2_completion') ? 'Understand what you bring to the people around you.' : completedScreens.has('1:w1_completion') ? 'Practise the player you want to be.' : 'Notice when you feel most like yourself as an athlete this week.'}
+          {completedScreens.has('3:w3_completion') ? 'Where does your attention go when the game gets loud?' : completedScreens.has('2:w2_completion') ? 'Understand what you bring to the people around you.' : completedScreens.has('1:w1_completion') ? 'Practise the player you want to be.' : 'Notice when you feel most like yourself as an athlete this week.'}
         </p>
         <div style={{ ...card, marginBottom: 16 }}>
           <span style={eyebrow()}>Your focus this week</span>
@@ -1100,11 +1349,17 @@ export default function Home() {
               <button onClick={() => setScreen('w3_opening')} style={{ ...btnPrimary, fontSize: 9 }}>Start Week 3 →</button>
             </div>
           )}
+          {completedScreens.has('3:w3_completion') && !completedScreens.has('4:w4_completion') && (
+            <div style={{ marginTop: 12 }}>
+              <button onClick={() => setScreen('w4_opening')} style={{ ...btnPrimary, fontSize: 9 }}>Start Week 4 →</button>
+            </div>
+          )}
         </div>
         <div style={{ ...card }}>
           <span style={eyebrow()}>After training or competition</span>
           <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>Come back here to add a reflection on what happened.</p>
           <button onClick={() => setScreen(
+            completedScreens.has('3:w3_completion') ? 'w4_event_reflection' :
             completedScreens.has('2:w2_completion') ? 'w3_event_reflection' :
             completedScreens.has('1:w1_completion') ? 'w2_event_reflection' :
             'event_reflection'

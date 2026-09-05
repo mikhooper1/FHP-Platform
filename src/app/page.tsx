@@ -6,7 +6,7 @@ import { getOrCreateAthlete, saveReflection, completeScreen, getCompletedScreens
 import { createClient } from '@/lib/supabase'
 
 type AuthStage = 'enter_email' | 'enter_code' | 'authenticated'
-type AppScreen = 'fhp_picture' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'w1_completion' | 'w2_opening' | 'w2_video' | 'train_it' | 'w2_mirror' | 'w2_experiment' | 'w2_event_reflection' | 'w2_completion' | 'w3_opening' | 'w3_video' | 'play_your_part' | 'w3_mirror' | 'w3_experiment' | 'w3_event_reflection' | 'w3_completion' | 'w4_opening' | 'w4_video' | 'play_free' | 'w4_mirror' | 'w4_experiment' | 'w4_event_reflection' | 'w4_completion' | 'final_mirror' | 'home'
+type AppScreen = 'fhp_picture' | 'welcome_video' | 'onboarding_reflection' | 'early_mirror' | 'week1_video' | 'my_edge' | 'second_mirror' | 'experiment' | 'event_reflection' | 'sounding_board' | 'fuller_mirror' | 'w1_completion' | 'w2_opening' | 'w2_video' | 'train_it' | 'w2_mirror' | 'w2_experiment' | 'w2_event_reflection' | 'w2_completion' | 'w3_opening' | 'w3_video' | 'play_your_part' | 'w3_mirror' | 'w3_experiment' | 'w3_event_reflection' | 'w3_completion' | 'w4_opening' | 'w4_video' | 'play_free' | 'w4_mirror' | 'w4_experiment' | 'w4_event_reflection' | 'w4_completion' | 'final_mirror' | 'home'
 
 const eyebrow = (color = 'var(--ink3)'): React.CSSProperties => ({
   fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600,
@@ -185,7 +185,7 @@ export default function Home() {
     await getOrCreateAthlete(athleteId, nameInput.trim())
     setAthleteName(nameInput.trim())
     await completeScreen(athleteId, 0, 'name_saved')
-    setScreen('onboarding_reflection')
+    setScreen('fhp_picture')
   }
 
   async function handleSaveReflections() {
@@ -314,7 +314,34 @@ export default function Home() {
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 4 }}>Final FHP Reflection</div>
             <div style={{ fontSize: 12, color: 'var(--ink4)' }}>What FHP has noticed across your four weeks</div>
           </div>
-          <button onClick={() => setScreen('onboarding_reflection')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Start Week 1 →</button>
+          <button onClick={() => setScreen('welcome_video')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Start Week 1 →</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── WELCOME VIDEO ──
+  if (screen === 'welcome_video') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+        <div style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
+            <span style={eyebrow('var(--orange)')}>Welcome to FHP</span>
+            <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Before we start.</h2>
+            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>A short message from Michael on what you are about to do and why.</p>
+          </div>
+          <div style={{ width: '100%', aspectRatio: '9/16', maxWidth: 280, margin: '0 auto 32px', borderRadius: 12, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--cream3)' }}>
+            <div style={{ textAlign: 'center', padding: 24 }}>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Video placeholder</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white', lineHeight: 1.3 }}>Welcome to FHP</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>2-3 minutes</div>
+            </div>
+          </div>
+          <button onClick={async () => {
+            await completeScreen(athleteId, 0, 'welcome_video')
+            setScreen('onboarding_reflection')
+          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue</button>
         </div>
       </div>
     )

@@ -50,7 +50,7 @@ export default function Home() {
   const [myEdge, setMyEdge] = useState<Record<string, string>>({})
   const [secondMirror, setSecondMirror] = useState('')
   const [isRecording, setIsRecording] = useState(false)
-  const recognitionRef = useRef<any>(null)
+
 
   useEffect(() => {
     async function checkSession() {
@@ -102,36 +102,51 @@ export default function Home() {
     checkSession()
   }, [])
 
-  function startRecording(setter: (v: string) => void, current: string) {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) return
-    const recognition = new SR()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = 'en-AU'
-    let final = current
-    recognition.onresult = (e: any) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const t = e.results[i][0].transcript
-        if (e.results[i].isFinal) { final += (final ? ' ' : '') + t } else { interim = t }
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  async function startWhisperRecording(setter: (v: string) => void, current: string) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      audioChunksRef.current = []
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
-      setter(final + (interim ? ' ' + interim : ''))
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        setIsRecording(false)
+        try {
+          const form = new FormData()
+          form.append('audio', audioBlob, 'audio.webm')
+          const res = await fetch('/api/transcribe', { method: 'POST', body: form })
+          const data = await res.json()
+          if (data.transcript) {
+            setter(current ? current + ' ' + data.transcript : data.transcript)
+          }
+        } catch (e) {
+          console.error('Transcription error:', e)
+        }
+      }
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (e) {
+      console.error('Microphone error:', e)
     }
-    recognition.onend = () => { setIsRecording(false); recognitionRef.current = null }
-    recognitionRef.current = recognition
-    recognition.start()
-    setIsRecording(true)
   }
 
-  function stopRecording() {
-    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null }
-    setIsRecording(false)
+  function stopWhisperRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current = null
+    }
   }
 
   function toggleRecording(setter: (v: string) => void, current: string) {
-    if (isRecording) { stopRecording(); return }
-    startRecording(setter, current)
+    if (isRecording) { stopWhisperRecording(); return }
+    startWhisperRecording(setter, current)
   }
 
   const VoiceBtn = ({ setter, current }: { setter: (v: string) => void, current: string }) => (
@@ -144,7 +159,12 @@ export default function Home() {
       border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
       color: isRecording ? 'white' : 'var(--ink3)',
     }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: isRecording ? 'white' : 'var(--orange)', display: 'inline-block' }} />
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+        {isRecording
+          ? <rect x="2" y="2" width="8" height="8" rx="1" fill="white"/>
+          : <><rect x="4" y="1" width="4" height="6" rx="2" fill="var(--orange)"/><path d="M2 6.5C2 8.71 3.79 10.5 6 10.5C8.21 10.5 10 8.71 10 6.5" stroke="var(--orange)" strokeWidth="1.2" strokeLinecap="round" fill="none"/><line x1="6" y1="10.5" x2="6" y2="12" stroke="var(--orange)" strokeWidth="1.2" strokeLinecap="round"/></>
+        }
+      </svg>
       {isRecording ? 'Stop' : 'Speak'}
     </button>
   )

@@ -292,7 +292,7 @@ export default function Home() {
       { key: '4:w4_completion', label: 'Play Free', sub: 'Where my attention goes under pressure', symbol: 'free' },
     ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 20px', display: 'block' }} />
@@ -346,7 +346,7 @@ export default function Home() {
   // ── ONBOARDING REFLECTION ──
   if (screen === 'onboarding_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
@@ -381,7 +381,7 @@ export default function Home() {
   // ── EARLY MIRROR ──
   if (screen === 'early_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>One thing worth noticing.</h2>
@@ -401,7 +401,7 @@ export default function Home() {
   // ── WEEK 1 VIDEO ──
   if (screen === 'week1_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 1</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Know Your Edge</h2>
@@ -423,7 +423,7 @@ export default function Home() {
   // ── MY EDGE ──
   if (screen === 'my_edge') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 1 — My Edge</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Build your edge.</h2>
@@ -474,7 +474,7 @@ export default function Home() {
   // ── SECOND MIRROR ──
   if (screen === 'second_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
@@ -492,11 +492,19 @@ export default function Home() {
   // ── EXPERIMENT ──
   if (screen === 'experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Get another view.</h2>
           <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 28 }}>Sometimes other people can see things in us that we don't notice ourselves. This week, ask one person you trust two simple questions.</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+            {['ASK', 'LISTEN', 'NOTICE'].map((step, i) => (
+              <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', color: 'var(--orange)' }}>{step}</span>
+                {i < 2 && <span style={{ color: 'var(--cream4)', fontSize: 12 }}>→</span>}
+              </div>
+            ))}
+          </div>
           <div style={{ ...card, marginBottom: 28 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>"When do you think I'm at my best?"</div>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>"What do you see me doing when I'm playing well?"</div>
@@ -512,7 +520,7 @@ export default function Home() {
   // ── EVENT REFLECTION ──
   if (screen === 'event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>After training or competition</span>
@@ -549,7 +557,7 @@ export default function Home() {
   // ── SOUNDING BOARD ──
   if (screen === 'sounding_board') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Sounding board</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Did you get a chance to ask someone?</h2>
@@ -581,7 +589,7 @@ export default function Home() {
   // ── FULLER MIRROR ──
   if (screen === 'fuller_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP Mirror</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What FHP has noticed.</h2>
@@ -639,7 +647,7 @@ export default function Home() {
   // ── WEEK 2 OPENING ──
   if (screen === 'w2_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
@@ -679,7 +687,7 @@ export default function Home() {
   // ── WEEK 2 VIDEO ──
   if (screen === 'w2_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 2</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Train How You Want to Play</h2>
@@ -701,7 +709,7 @@ export default function Home() {
   // ── TRAIN IT ──
   if (screen === 'train_it') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 2 — Train It</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Build your plan.</h2>
@@ -756,7 +764,7 @@ export default function Home() {
   // ── WEEK 2 MIRROR ──
   if (screen === 'w2_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
@@ -774,10 +782,18 @@ export default function Home() {
   // ── WEEK 2 EXPERIMENT ──
   if (screen === 'w2_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Use training deliberately.</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+            {['CHOOSE', 'PRACTISE', 'NOTICE'].map((step, i) => (
+              <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', color: 'var(--orange)' }}>{step}</span>
+                {i < 2 && <span style={{ color: 'var(--cream4)', fontSize: 12 }}>→</span>}
+              </div>
+            ))}
+          </div>
           <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 28 }}>Pick one behaviour. Before at least two training sessions this week, tell yourself:</p>
           <div style={{ ...card, marginBottom: 28 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>"Today I want to practise ______."</div>
@@ -793,7 +809,7 @@ export default function Home() {
   // ── WEEK 2 EVENT REFLECTION ──
   if (screen === 'w2_event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>Week 2 — After training or competition</span>
@@ -870,7 +886,7 @@ export default function Home() {
   // ── WEEK 3 OPENING ──
   if (screen === 'w3_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
@@ -910,7 +926,7 @@ export default function Home() {
   // ── WEEK 3 VIDEO ──
   if (screen === 'w3_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 3</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Play Your Part</h2>
@@ -932,7 +948,7 @@ export default function Home() {
   // ── PLAY YOUR PART ──
   if (screen === 'play_your_part') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 3 — Play Your Part</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your contribution.</h2>
@@ -988,7 +1004,7 @@ export default function Home() {
   // ── WEEK 3 MIRROR ──
   if (screen === 'w3_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
@@ -1006,10 +1022,18 @@ export default function Home() {
   // ── WEEK 3 EXPERIMENT ──
   if (screen === 'w3_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Know what the team needs.</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+            {['ASK', 'CHOOSE', 'REFLECT'].map((step, i) => (
+              <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', color: 'var(--orange)' }}>{step}</span>
+                {i < 2 && <span style={{ color: 'var(--cream4)', fontSize: 12 }}>→</span>}
+              </div>
+            ))}
+          </div>
           <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 28 }}>Before your next training session or game, ask yourself one question:</p>
           <div style={{ ...card, marginBottom: 28 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>"What does the team need from me today?"</div>
@@ -1025,7 +1049,7 @@ export default function Home() {
   // ── WEEK 3 EVENT REFLECTION ──
   if (screen === 'w3_event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>Week 3 — After training or competition</span>
@@ -1103,7 +1127,7 @@ export default function Home() {
   // ── WEEK 4 OPENING ──
   if (screen === 'w4_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
@@ -1143,7 +1167,7 @@ export default function Home() {
   // -- WEEK 4 VIDEO --
   if (screen === 'w4_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 4</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Play Free</h2>
@@ -1169,7 +1193,7 @@ export default function Home() {
       { key: 'my_refocus', label: 'What I come back to:' },
     ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 4 - Play Free</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your attention map.</h2>
@@ -1210,7 +1234,7 @@ export default function Home() {
   // -- WEEK 4 MIRROR --
   if (screen === 'w4_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What is starting to emerge.</h2>
@@ -1226,10 +1250,18 @@ export default function Home() {
   // -- WEEK 4 EXPERIMENT --
   if (screen === 'w4_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Notice. Reset. Refocus.</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+            {['NOTICE', 'RESET', 'REFOCUS'].map((step, i) => (
+              <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', color: 'var(--orange)' }}>{step}</span>
+                {i < 2 && <span style={{ color: 'var(--cream4)', fontSize: 12 }}>→</span>}
+              </div>
+            ))}
+          </div>
           <div style={{ ...card, marginBottom: 28 }}>
             <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7, marginBottom: 16 }}>If things are going well: notice it briefly, leave it alone, keep competing.</div>
             <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7 }}>If you get knocked off: notice, reset, then ask what can I do next.</div>
@@ -1250,7 +1282,7 @@ export default function Home() {
       { key: 'w4_ev5', label: 'Was there something that helped you reconnect?' },
     ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
+      <div className="screen-fade" style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>Back</button>
           <span style={eyebrow('var(--orange)')}>Week 4 - After training or competition</span>

@@ -103,7 +103,7 @@ The athlete's name is ${athleteName}.`
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 300,
+        max_tokens: stage === 'final' ? 1000 : 300,
         system: systemPrompt,
         messages: [
           {

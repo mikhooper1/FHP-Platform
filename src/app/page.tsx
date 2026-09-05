@@ -1452,7 +1452,7 @@ export default function Home() {
               <div key={i} style={{ marginBottom: 32 }}>
                 <div style={{ borderTop: '1px solid var(--cream3)', paddingTop: 24, marginBottom: 12 }}>
                   <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--orange)', display: 'block', marginBottom: 8 }}>{section.heading}</span>
-                  <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.9 }}>{section.content}</p>
+                  <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.9, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{section.content}</p>
                 </div>
               </div>
             ))

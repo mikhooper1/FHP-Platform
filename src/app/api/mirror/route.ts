@@ -45,23 +45,30 @@ The athlete's name is ${athleteName}.`
 
 The athlete has just completed a four-week program. You have their full evidence across all four weeks.
 
-Your job is to produce a meaningful personal summary - what FHP noticed about this athlete based only on what they recorded.
+Return your response as exactly 5 sections using this format. Each section heading must appear exactly as shown, followed by a colon and newline, then 2-3 sentences of content.
 
-Structure your response as flowing prose with these elements:
-- What seems to be working for them
-- When they seem at their best
-- What they bring to others
-- What tends to pull them off course and what helps them return
-- One thing worth continuing to develop
+WHEN YOU ARE AT YOUR BEST:
+[2-3 sentences based on evidence]
+
+WHAT SEEMS TO HELP YOU PREPARE:
+[2-3 sentences based on evidence]
+
+WHAT YOU BRING TO OTHERS:
+[2-3 sentences based on evidence]
+
+WHAT CAN PULL YOU OFF COURSE:
+[2-3 sentences based on evidence]
+
+ONE THING WORTH EXPLORING:
+[1-2 sentences based on evidence]
 
 Rules:
-- Only name things supported by actual evidence across multiple entries
-- If evidence is thin in an area say so honestly
-- Positive-performance lens: look for strengths first
-- Maximum 200 words
+- Only include things supported by actual evidence
+- If evidence is thin in an area, say so honestly in that section
+- Positive-performance lens: strengths first
 - Tone: calm, specific, honest, personal
-- Address them by name
-- Plain text only, no headers or bullets
+- Address them by name in the first section only
+- Plain text only within each section
 
 The athlete's name is ${athleteName}.`
     } else {

@@ -285,63 +285,59 @@ export default function Home() {
 
   // ── FHP PICTURE ──
   if (screen === 'fhp_picture') {
+    const weeks = [
+      { key: '1:w1_completion', label: 'My Edge', sub: 'When I am at my best', symbol: 'edge' },
+      { key: '2:w2_completion', label: 'My Preparation', sub: 'What helps me get ready', symbol: 'prep' },
+      { key: '3:w3_completion', label: 'My Contribution', sub: 'What I bring to others', symbol: 'contrib' },
+      { key: '4:w4_completion', label: 'Play Free', sub: 'Where my attention goes under pressure', symbol: 'free' },
+    ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 20px', display: 'block' }} />
-            <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
-            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>What you're building.</h1>
-            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>Over four weeks, FHP builds a clearer picture of how you perform.</p>
+            <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--orange)', marginBottom: 10, display: 'block' }}>Your FHP Picture</span>
+            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, color: 'var(--ink)', marginBottom: 10 }}>What you're building.</h1>
+            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>Over four weeks, FHP builds a picture of how you perform. Each week adds a layer.</p>
           </div>
-          {[
-            { num: 1, label: 'My Edge', sub: 'When I am at my best', done: completedScreens.has('1:w1_completion') },
-            { num: 2, label: 'My Preparation', sub: 'What helps me get ready', done: completedScreens.has('2:w2_completion') },
-            { num: 3, label: 'My Contribution', sub: 'What I bring to others', done: completedScreens.has('3:w3_completion') },
-            { num: 4, label: 'Play Free', sub: 'Where my attention goes under pressure', done: completedScreens.has('4:w4_completion') },
-          ].map(item => (
-            <div key={item.num} style={{ ...card, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, opacity: item.done ? 1 : 0.5 }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.num}</span>
-              </div>
-              <div>
-                <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink4)', marginTop: 2 }}>{item.sub}</div>
-              </div>
-            </div>
-          ))}
-          <div style={{ ...card, marginBottom: 32, opacity: 0.4 }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 4 }}>Final FHP Reflection</div>
-            <div style={{ fontSize: 12, color: 'var(--ink4)' }}>What FHP has noticed across your four weeks</div>
-          </div>
-          <button onClick={() => setScreen('welcome_video')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Start Week 1 →</button>
-        </div>
-      </div>
-    )
-  }
 
-  // ── WELCOME VIDEO ──
-  if (screen === 'welcome_video') {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
-        <div style={{ maxWidth: 420, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
-            <span style={eyebrow('var(--orange)')}>Welcome to FHP</span>
-            <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Before we start.</h2>
-            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>A short message from Michael on what you are about to do and why.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32 }}>
+            {weeks.map((w, i) => {
+              const done = completedScreens.has(w.key)
+              return (
+                <div key={w.key} style={{
+                  background: done ? 'var(--white)' : 'transparent',
+                  border: done ? '1.5px solid var(--orange)' : '1.5px solid var(--cream4)',
+                  borderRadius: 14,
+                  padding: '20px 16px',
+                  textAlign: 'center',
+                  opacity: done ? 1 : 0.45,
+                  transition: 'all 0.3s ease',
+                }}>
+                  <div style={{ marginBottom: 10 }}>
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto', display: 'block' }}>
+                      {w.symbol === 'edge' && <><line x1="4" y1="14" x2="24" y2="14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="4" x2="24" y2="14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="24" x2="24" y2="14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" strokeLinecap="round"/></>}
+                      {w.symbol === 'prep' && <><circle cx="14" cy="14" r="8" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><line x1="14" y1="6" x2="14" y2="14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" strokeLinecap="round"/><line x1="14" y1="14" x2="19" y2="17" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" strokeLinecap="round"/></>}
+                      {w.symbol === 'contrib' && <><circle cx="8" cy="14" r="3" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><circle cx="20" cy="14" r="3" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><circle cx="14" cy="7" r="3" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><line x1="11" y1="14" x2="17" y2="14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><line x1="12" y1="9.5" x2="9" y2="12" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/><line x1="16" y1="9.5" x2="19" y2="12" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5"/></>}
+                      {w.symbol === 'free' && <><path d="M6 14 Q14 6 22 14 Q14 22 6 14" stroke={done ? '#D4842A' : '#C4B9A8'} strokeWidth="1.5" fill="none"/><circle cx="14" cy="14" r="2" fill={done ? '#D4842A' : '#C4B9A8'}/></>}
+                    </svg>
+                  </div>
+                  <div style={{ fontFamily: 'Barlow Condensed', fontSize: 13, fontWeight: 600, color: done ? 'var(--ink)' : 'var(--ink4)', letterSpacing: '0.05em', marginBottom: 4 }}>{w.label}</div>
+                  <div style={{ fontSize: 11, color: done ? 'var(--ink3)' : 'var(--ink4)', lineHeight: 1.4 }}>{w.sub}</div>
+                  {done && <div style={{ marginTop: 8, width: 16, height: 16, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px auto 0' }}>
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><polyline points="1.5,4 3.2,6 6.5,2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>}
+                </div>
+              )
+            })}
           </div>
-          <div style={{ width: '100%', aspectRatio: '9/16', maxWidth: 280, margin: '0 auto 32px', borderRadius: 12, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--cream3)' }}>
-            <div style={{ textAlign: 'center', padding: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>Video placeholder</div>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 18, fontWeight: 300, color: 'white', lineHeight: 1.3 }}>Welcome to FHP</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8 }}>2-3 minutes</div>
-            </div>
+
+          <div style={{ background: 'transparent', border: '1px dashed var(--cream4)', borderRadius: 12, padding: '16px 20px', marginBottom: 32, textAlign: 'center', opacity: completedScreens.has('4:w4_completion') ? 1 : 0.4 }}>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 11, color: 'var(--ink4)', letterSpacing: '0.15em', marginBottom: 4 }}>FINAL FHP REFLECTION</div>
+            <div style={{ fontSize: 12, color: 'var(--ink4)', lineHeight: 1.6 }}>What FHP has noticed across your four weeks</div>
           </div>
-          <button onClick={async () => {
-            await completeScreen(athleteId, 0, 'welcome_video')
-            setScreen('onboarding_reflection')
-          }} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue</button>
+
+          <button onClick={() => setScreen('welcome_video')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Start Week 1 →</button>
         </div>
       </div>
     )
@@ -350,16 +346,16 @@ export default function Home() {
   // ── ONBOARDING REFLECTION ──
   if (screen === 'onboarding_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
             <span style={eyebrow('var(--orange)')}>Week 1 — Know Your Edge</span>
           </div>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
-          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Before anything else — think about a recent performance where you felt genuinely good. It doesn't need to have been your best result. Just a time where things were working.</p>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Before anything else — think about a recent performance where you felt genuinely good. It doesn't need to have been your best result. Just a time where things were working.</p>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What was actually going well?</div>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What was actually going well?</div>
             <VoiceBtn setter={setReflection1} current={reflection1} />
             <textarea value={reflection1} onChange={e => setReflection1(e.target.value)}
               style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -385,14 +381,14 @@ export default function Home() {
   // ── EARLY MIRROR ──
   if (screen === 'early_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>One thing worth noticing.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
             {mirrorLoading
               ? <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>Reading what you wrote...</p>
-              : <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>"{earlyMirror || "It's too early to call anything a pattern yet. But what you've described is worth holding onto this week."}"</p>
+              : <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>"{earlyMirror || "It's too early to call anything a pattern yet. But what you've described is worth holding onto this week."}"</p>
             }
           </div>
           <button onClick={() => setScreen('week1_video')} disabled={mirrorLoading}
@@ -405,7 +401,7 @@ export default function Home() {
   // ── WEEK 1 VIDEO ──
   if (screen === 'week1_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 1</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Know Your Edge</h2>
@@ -427,7 +423,7 @@ export default function Home() {
   // ── MY EDGE ──
   if (screen === 'my_edge') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 1 — My Edge</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Build your edge.</h2>
@@ -439,10 +435,10 @@ export default function Home() {
             { key: 'im_building', label: "What's one thing you'd like to keep getting better at?" },
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{field.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [field.key]: v }))} current={myEdge[field.key] || ''} />
               <textarea value={myEdge[field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [field.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Say it in your own words..." />
             </div>
           ))}
@@ -478,12 +474,12 @@ export default function Home() {
   // ── SECOND MIRROR ──
   if (screen === 'second_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>
               "{secondMirror || "You've described what you bring and what you want to keep building. That's a useful starting point."}"
             </p>
           </div>
@@ -496,7 +492,7 @@ export default function Home() {
   // ── EXPERIMENT ──
   if (screen === 'experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Get another view.</h2>
@@ -516,7 +512,7 @@ export default function Home() {
   // ── EVENT REFLECTION ──
   if (screen === 'event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>After training or competition</span>
@@ -529,10 +525,10 @@ export default function Home() {
             { key: 'ev_adjust', label: "What's one thing you might adjust next time?" },
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{q.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
               <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Speak or write here..." />
             </div>
           ))}
@@ -553,7 +549,7 @@ export default function Home() {
   // ── SOUNDING BOARD ──
   if (screen === 'sounding_board') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Sounding board</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Did you get a chance to ask someone?</h2>
@@ -585,12 +581,12 @@ export default function Home() {
   // ── FULLER MIRROR ──
   if (screen === 'fuller_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP Mirror</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What FHP has noticed.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>
               "{earlyMirror || "Keep reflecting — FHP is building a clearer picture of how you perform."}"
             </p>
           </div>
@@ -604,7 +600,7 @@ export default function Home() {
   // ── WEEK 1 COMPLETION ──
   if (screen === 'w1_completion') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
           <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
           <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
@@ -618,7 +614,7 @@ export default function Home() {
           ].map(item => (
             <div key={item.num} style={{ background: 'var(--white)', border: `1px solid ${item.done ? 'var(--orange)' : 'var(--cream3)'}`, borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', opacity: item.done ? 1 : 0.4 }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.done ? '✓' : item.num}</span>
+                {item.done ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10.5 11.5,3.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: 'var(--ink4)' }}>{item.num}</span>}
               </div>
               <div>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
@@ -643,16 +639,16 @@ export default function Home() {
   // ── WEEK 2 OPENING ──
   if (screen === 'w2_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
             <span style={eyebrow('var(--orange)')}>Week 2 — Train How You Want to Play</span>
           </div>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
-          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Think of something you already do well in games. How do you practise that during the week?</p>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think of something you already do well in games. How do you practise that during the week?</p>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What is something you already do well in games — and where does it get practised during the week?</div>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What is something you already do well in games — and where does it get practised during the week?</div>
             <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w2_r1: v }))} current={myEdge.w2_r1 || ''} />
             <textarea value={myEdge.w2_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r1: e.target.value }))}
               style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -660,7 +656,7 @@ export default function Home() {
           </div>
           {(myEdge.w2_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What is one behaviour you would like to show more consistently in competition?</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What is one behaviour you would like to show more consistently in competition?</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w2_r2: v }))} current={myEdge.w2_r2 || ''} />
               <textarea value={myEdge.w2_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r2: e.target.value }))}
                 style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -683,7 +679,7 @@ export default function Home() {
   // ── WEEK 2 VIDEO ──
   if (screen === 'w2_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 2</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Train How You Want to Play</h2>
@@ -705,7 +701,7 @@ export default function Home() {
   // ── TRAIN IT ──
   if (screen === 'train_it') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 2 — Train It</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Build your plan.</h2>
@@ -717,10 +713,10 @@ export default function Home() {
             { key: 'what_good_looks_like', label: 'What it looks like when I do it well:' },
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{field.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: v }))} current={myEdge[`ti_${field.key}`] || ''} />
               <textarea value={myEdge[`ti_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Say it in your own words..." />
             </div>
           ))}
@@ -760,12 +756,12 @@ export default function Home() {
   // ── WEEK 2 MIRROR ──
   if (screen === 'w2_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>
               "{secondMirror || "You've started identifying what you want to practise. Keep paying attention to whether it shows up."}"
             </p>
           </div>
@@ -778,7 +774,7 @@ export default function Home() {
   // ── WEEK 2 EXPERIMENT ──
   if (screen === 'w2_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Use training deliberately.</h2>
@@ -797,7 +793,7 @@ export default function Home() {
   // ── WEEK 2 EVENT REFLECTION ──
   if (screen === 'w2_event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>Week 2 — After training or competition</span>
@@ -811,10 +807,10 @@ export default function Home() {
             { key: 'w2_ev5', label: 'Is there one adjustment worth making?' },
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{q.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
               <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Speak or write here..." />
             </div>
           ))}
@@ -835,7 +831,7 @@ export default function Home() {
   // ── WEEK 2 COMPLETION ──
   if (screen === 'w2_completion') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
           <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
           <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
@@ -849,7 +845,7 @@ export default function Home() {
           ].map(item => (
             <div key={item.num} style={{ background: 'var(--white)', border: `1px solid ${item.done ? 'var(--orange)' : 'var(--cream3)'}`, borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', opacity: item.done ? 1 : 0.4 }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.done ? '✓' : item.num}</span>
+                {item.done ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10.5 11.5,3.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: 'var(--ink4)' }}>{item.num}</span>}
               </div>
               <div>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
@@ -874,16 +870,16 @@ export default function Home() {
   // ── WEEK 3 OPENING ──
   if (screen === 'w3_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
             <span style={eyebrow('var(--orange)')}>Week 3 — Play Your Part</span>
           </div>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
-          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Think about a game where you felt really useful to your team. Not the game where you got the most recognition — just a game where you felt like you were genuinely helping.</p>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think about a game where you felt really useful to your team. Not the game where you got the most recognition — just a game where you felt like you were genuinely helping.</p>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What were you actually doing?</div>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What were you actually doing?</div>
             <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w3_r1: v }))} current={myEdge.w3_r1 || ''} />
             <textarea value={myEdge.w3_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r1: e.target.value }))}
               style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -891,7 +887,7 @@ export default function Home() {
           </div>
           {(myEdge.w3_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>When things become difficult, does that contribution stay the same or change?</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>When things become difficult, does that contribution stay the same or change?</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w3_r2: v }))} current={myEdge.w3_r2 || ''} />
               <textarea value={myEdge.w3_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r2: e.target.value }))}
                 style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -914,7 +910,7 @@ export default function Home() {
   // ── WEEK 3 VIDEO ──
   if (screen === 'w3_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 3</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Play Your Part</h2>
@@ -936,7 +932,7 @@ export default function Home() {
   // ── PLAY YOUR PART ──
   if (screen === 'play_your_part') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 3 — Play Your Part</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your contribution.</h2>
@@ -949,10 +945,10 @@ export default function Home() {
             { key: 'under_pressure', label: 'What happens to my contribution under pressure:' },
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{field.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: v }))} current={myEdge[`pyp_${field.key}`] || ''} />
               <textarea value={myEdge[`pyp_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Say it in your own words..." />
             </div>
           ))}
@@ -992,12 +988,12 @@ export default function Home() {
   // ── WEEK 3 MIRROR ──
   if (screen === 'w3_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What's starting to emerge.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>
               "{secondMirror || "You've started identifying what you bring to others. Keep paying attention to whether that contribution shows up under pressure."}"
             </p>
           </div>
@@ -1010,7 +1006,7 @@ export default function Home() {
   // ── WEEK 3 EXPERIMENT ──
   if (screen === 'w3_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week — one thing to try</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Know what the team needs.</h2>
@@ -1029,7 +1025,7 @@ export default function Home() {
   // ── WEEK 3 EVENT REFLECTION ──
   if (screen === 'w3_event_reflection') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>← Back</button>
           <span style={eyebrow('var(--orange)')}>Week 3 — After training or competition</span>
@@ -1043,10 +1039,10 @@ export default function Home() {
             { key: 'w3_ev5', label: 'Is there one thing the team could use more of from you?' },
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>{q.label}</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
               <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Speak or write here..." />
             </div>
           ))}
@@ -1067,7 +1063,7 @@ export default function Home() {
   // ── WEEK 3 COMPLETION ──
   if (screen === 'w3_completion') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
           <img src="/logo.png" alt="FHP" style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
           <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
@@ -1081,7 +1077,7 @@ export default function Home() {
           ].map(item => (
             <div key={item.num} style={{ background: 'var(--white)', border: `1px solid ${item.done ? 'var(--orange)' : 'var(--cream3)'}`, borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', opacity: item.done ? 1 : 0.4 }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: item.done ? 'var(--orange)' : 'var(--cream3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: item.done ? 'white' : 'var(--ink4)' }}>{item.done ? '✓' : item.num}</span>
+                {item.done ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10.5 11.5,3.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: 'var(--ink4)' }}>{item.num}</span>}
               </div>
               <div>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{item.label}</div>
@@ -1107,16 +1103,16 @@ export default function Home() {
   // ── WEEK 4 OPENING ──
   if (screen === 'w4_opening') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
             <span style={eyebrow('var(--orange)')}>Week 4 — Play Free</span>
           </div>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 26, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Start with you.</h2>
-          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 28 }}>Think about a time when you felt completely in the game. You were not forcing things. You were just playing.</p>
+          <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think about a time when you felt completely in the game. You were not forcing things. You were just playing.</p>
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>What was happening? Where was your attention?</div>
+            <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What was happening? Where was your attention?</div>
             <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r1: v }))} current={myEdge.w4_r1 || ''} />
             <textarea value={myEdge.w4_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r1: e.target.value }))}
               style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -1124,7 +1120,7 @@ export default function Home() {
           </div>
           {(myEdge.w4_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
-              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 400, color: 'var(--ink)', marginBottom: 10 }}>Now think about a time when a mistake or the result pulled you away from that feeling. What happened next?</div>
+              <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>Now think about a time when a mistake or the result pulled you away from that feeling. What happened next?</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r2: v }))} current={myEdge.w4_r2 || ''} />
               <textarea value={myEdge.w4_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r2: e.target.value }))}
                 style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
@@ -1147,7 +1143,7 @@ export default function Home() {
   // -- WEEK 4 VIDEO --
   if (screen === 'w4_video') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 4</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Play Free</h2>
@@ -1173,7 +1169,7 @@ export default function Home() {
       { key: 'my_refocus', label: 'What I come back to:' },
     ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>Week 4 - Play Free</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your attention map.</h2>
@@ -1183,7 +1179,7 @@ export default function Home() {
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>{field.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: v }))} current={myEdge['pf_' + field.key] || ''} />
               <textarea value={myEdge['pf_' + field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Say it in your own words..." />
             </div>
           ))}
@@ -1214,12 +1210,12 @@ export default function Home() {
   // -- WEEK 4 MIRROR --
   if (screen === 'w4_mirror') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>FHP noticed</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 24 }}>What is starting to emerge.</h2>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.8, fontStyle: 'italic' }}>"{secondMirror || "You have started mapping where your attention goes."}"</p>
+          <div style={{ background: '#2C2C2C', borderRadius: 14, padding: '28px 28px', marginBottom: 32, borderLeft: '3px solid var(--orange)' }}>
+            <p style={{ fontSize: 14, fontWeight: 300, color: '#F5F0E8', lineHeight: 1.9, fontStyle: 'normal' }}>"{secondMirror || "You have started mapping where your attention goes."}"</p>
           </div>
           <button onClick={() => setScreen('w4_experiment')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>This week experiment</button>
         </div>
@@ -1230,7 +1226,7 @@ export default function Home() {
   // -- WEEK 4 EXPERIMENT --
   if (screen === 'w4_experiment') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <span style={eyebrow('var(--orange)')}>This week</span>
           <h2 style={{ fontFamily: 'Barlow Condensed', fontSize: 28, fontWeight: 300, color: 'var(--ink)', marginBottom: 16 }}>Notice. Reset. Refocus.</h2>
@@ -1254,7 +1250,7 @@ export default function Home() {
       { key: 'w4_ev5', label: 'Was there something that helped you reconnect?' },
     ]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <button onClick={() => setScreen('home')} style={{ ...btnOutline, marginBottom: 24, padding: '6px 14px', fontSize: 9 }}>Back</button>
           <span style={eyebrow('var(--orange)')}>Week 4 - After training or competition</span>
@@ -1264,7 +1260,7 @@ export default function Home() {
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, color: 'var(--ink)', marginBottom: 8 }}>{q.label}</div>
               <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
               <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 70, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Speak or write here..." />
             </div>
           ))}
@@ -1285,7 +1281,7 @@ export default function Home() {
   // -- WEEK 4 COMPLETION --
   if (screen === 'w4_completion') {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '52px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: 420, width: '100%', margin: '0 auto', textAlign: 'center' }}>
           <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 32px', display: 'block' }} />
           <span style={eyebrow('var(--orange)')}>Your FHP Picture</span>
@@ -1294,7 +1290,7 @@ export default function Home() {
           {['My Edge', 'My Preparation', 'My Contribution', 'Play Free'].map((label, i) => (
             <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--orange)', borderRadius: 14, padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left' }}>
               <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 600, color: 'white' }}>v</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="2,5 4,7.5 8,2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
             </div>
@@ -1331,22 +1327,50 @@ export default function Home() {
 
   // -- FINAL MIRROR --
   if (screen === 'final_mirror') {
+    const sectionHeadings = [
+      'WHEN YOU ARE AT YOUR BEST',
+      'WHAT SEEMS TO HELP YOU PREPARE',
+      'WHAT YOU BRING TO OTHERS',
+      'WHAT CAN PULL YOU OFF COURSE',
+      'ONE THING WORTH EXPLORING',
+    ]
+    const parseSections = (text: string) => {
+      if (!text) return []
+      return sectionHeadings.map(heading => {
+        const regex = new RegExp(heading + ':\\s*([\\s\\S]*?)(?=' + sectionHeadings.filter(h => h !== heading).map(h => h + ':').join('|') + '|$)')
+        const match = text.match(regex)
+        return { heading, content: match ? match[1].trim() : '' }
+      }).filter(s => s.content)
+    }
+    const sections = parseSections(earlyMirror)
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--cream)', padding: '48px 24px' }}>
-        <div style={{ maxWidth: 420, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <img src='/logo.png' alt='FHP' style={{ width: 80, height: 'auto', margin: '0 auto 16px', display: 'block' }} />
-            <span style={eyebrow('var(--orange)')}>What FHP noticed</span>
-            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 32, fontWeight: 300, color: 'var(--ink)', marginBottom: 8 }}>Your FHP Picture.</h1>
-            <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7 }}>Based only on what you recorded across four weeks.</p>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
+        <div style={{ background: '#2C2C2C', padding: '52px 28px 40px' }}>
+          <div style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+            <img src='/logo.png' alt='FHP' style={{ width: 70, height: 'auto', margin: '0 auto 16px', display: 'block', opacity: 0.9 }} />
+            <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--orange)', marginBottom: 10, display: 'block' }}>What FHP noticed</span>
+            <h1 style={{ fontFamily: 'Barlow Condensed', fontSize: 36, fontWeight: 300, color: '#F5F0E8', marginBottom: 8 }}>Your FHP Picture.</h1>
+            <p style={{ fontSize: 13, fontWeight: 300, color: 'rgba(245,240,232,0.6)', lineHeight: 1.7 }}>Based only on what you recorded across four weeks.</p>
           </div>
-          <div style={{ ...card, borderLeft: '3px solid var(--orange)', borderRadius: '0 14px 14px 0', marginBottom: 32 }}>
-            {mirrorLoading
-              ? <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>FHP is reading everything you recorded...</p>
-              : <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink2)', lineHeight: 1.9, whiteSpace: 'pre-line' }}>{earlyMirror || 'Your reflections are building a picture.'}</p>
-            }
-          </div>
-          <button onClick={() => setScreen('home')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center' }}>Continue</button>
+        </div>
+        <div style={{ padding: '40px 28px 80px', maxWidth: 420, margin: '0 auto' }}>
+          {mirrorLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>FHP is reading everything you recorded...</p>
+            </div>
+          ) : sections.length > 0 ? (
+            sections.map((section, i) => (
+              <div key={i} style={{ marginBottom: 32 }}>
+                <div style={{ borderTop: '1px solid var(--cream3)', paddingTop: 24, marginBottom: 12 }}>
+                  <span style={{ fontFamily: 'Barlow Condensed', fontSize: 9, fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--orange)', display: 'block', marginBottom: 8 }}>{section.heading}</span>
+                  <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.9 }}>{section.content}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.9, whiteSpace: 'pre-line' }}>{earlyMirror || 'Your reflections are building a picture.'}</p>
+          )}
+          <button onClick={() => setScreen('home')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', marginTop: 16 }}>Continue</button>
         </div>
       </div>
     )
@@ -1401,7 +1425,7 @@ export default function Home() {
         </div>
         <div style={{ ...card }}>
           <span style={eyebrow()}>After training or competition</span>
-          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 16 }}>Come back here to add a reflection on what happened.</p>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 20 }}>Come back here to add a reflection on what happened.</p>
           <button onClick={() => setScreen(
             completedScreens.has('3:w3_completion') ? 'w4_event_reflection' :
             completedScreens.has('2:w2_completion') ? 'w3_event_reflection' :

@@ -1444,7 +1444,8 @@ export default function Home() {
         <div style={{ padding: '40px 28px 80px', maxWidth: 420, margin: '0 auto' }}>
           {mirrorLoading ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontSize: 14, color: 'var(--ink3)', fontStyle: 'italic' }}>FHP is reading everything you recorded...</p>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--cream3)', borderTopColor: 'var(--orange)', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+              <p style={{ fontSize: 13, color: 'var(--ink3)' }}>FHP is reading everything you recorded...</p>
             </div>
           ) : sections.length > 0 ? (
             sections.map((section, i) => (
@@ -1458,7 +1459,9 @@ export default function Home() {
           ) : (
             <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink)', lineHeight: 1.9, whiteSpace: 'pre-line' }}>{earlyMirror || 'Your reflections are building a picture.'}</p>
           )}
-          <button onClick={() => setScreen('home')} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', marginTop: 16 }}>Continue</button>
+          <button onClick={() => setScreen('home')} disabled={mirrorLoading} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', marginTop: 16, opacity: mirrorLoading ? 0.4 : 1 }}>
+            {mirrorLoading ? 'Loading your picture...' : 'Continue →'}
+          </button>
         </div>
       </div>
     )
@@ -1513,7 +1516,11 @@ export default function Home() {
         </div>
         <div style={{ ...card }}>
           <span style={eyebrow()}>After training or competition</span>
-          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 20 }}>Come back here to add a reflection on what happened.</p>
+          <p style={{ fontSize: 14, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 20 }}>
+            {completedScreens.has('4:w4_completion')
+              ? 'Keep reflecting. Every session adds to your picture.'
+              : 'Come back after your next session or game to complete this week.'}
+          </p>
           <button onClick={() => setScreen(
             completedScreens.has('3:w3_completion') ? 'w4_event_reflection' :
             completedScreens.has('2:w2_completion') ? 'w3_event_reflection' :

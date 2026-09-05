@@ -122,3 +122,7 @@ input, textarea, select {
 .screen-fade {
   animation: fadeIn 0.25s ease-out forwards;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -49,7 +49,7 @@ export default function Home() {
   const [mirrorLoading, setMirrorLoading] = useState(false)
   const [myEdge, setMyEdge] = useState<Record<string, string>>({})
   const [secondMirror, setSecondMirror] = useState('')
-  const [isRecording, setIsRecording] = useState(false)
+  const [recordingKey, setRecordingKey] = useState<string | null>(null)
 
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
 
-  async function startWhisperRecording(setter: (v: string) => void, current: string) {
+  async function startWhisperRecording(key: string, setter: (v: string) => void, current: string) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
@@ -116,7 +116,7 @@ export default function Home() {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        setIsRecording(false)
+        setRecordingKey(null)
         try {
           const form = new FormData()
           form.append('audio', audioBlob, 'audio.webm')
@@ -131,7 +131,7 @@ export default function Home() {
       }
       mediaRecorderRef.current = mediaRecorder
       mediaRecorder.start()
-      setIsRecording(true)
+      setRecordingKey(key)
     } catch (e) {
       console.error('Microphone error:', e)
     }
@@ -144,30 +144,34 @@ export default function Home() {
     }
   }
 
-  function toggleRecording(setter: (v: string) => void, current: string) {
-    if (isRecording) { stopWhisperRecording(); return }
-    startWhisperRecording(setter, current)
+  function toggleRecording(key: string, setter: (v: string) => void, current: string) {
+    if (recordingKey === key) { stopWhisperRecording(); return }
+    if (recordingKey) { stopWhisperRecording() }
+    startWhisperRecording(key, setter, current)
   }
 
-  const VoiceBtn = ({ setter, current }: { setter: (v: string) => void, current: string }) => (
-    <button onClick={() => toggleRecording(setter, current)} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 8,
-      padding: '9px 16px', fontFamily: 'Barlow Condensed', fontSize: 10,
-      fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase' as const,
-      cursor: 'pointer', borderRadius: 7, marginBottom: 8,
-      background: isRecording ? 'var(--orange)' : 'var(--white)',
-      border: `1.5px solid ${isRecording ? 'var(--orange)' : 'var(--cream4)'}`,
-      color: isRecording ? 'white' : 'var(--ink3)',
-    }}>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-        {isRecording
-          ? <rect x="2" y="2" width="8" height="8" rx="1" fill="white"/>
-          : <><rect x="4" y="1" width="4" height="6" rx="2" fill="var(--orange)"/><path d="M2 6.5C2 8.71 3.79 10.5 6 10.5C8.21 10.5 10 8.71 10 6.5" stroke="var(--orange)" strokeWidth="1.2" strokeLinecap="round" fill="none"/><line x1="6" y1="10.5" x2="6" y2="12" stroke="var(--orange)" strokeWidth="1.2" strokeLinecap="round"/></>
-        }
-      </svg>
-      {isRecording ? 'Stop' : 'Speak'}
-    </button>
-  )
+  const VoiceBtn = ({ btnKey, setter, current }: { btnKey: string, setter: (v: string) => void, current: string }) => {
+    const active = recordingKey === btnKey
+    return (
+      <button onClick={() => toggleRecording(btnKey, setter, current)} style={{
+        position: 'absolute', bottom: 10, right: 10,
+        width: 32, height: 32, borderRadius: '50%',
+        background: active ? 'var(--orange)' : 'var(--white)',
+        border: `1.5px solid ${active ? 'var(--orange)' : 'var(--cream3)'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', zIndex: 10,
+        boxShadow: active ? '0 0 0 3px rgba(212,132,42,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+        transition: 'all 0.15s ease',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          {active
+            ? <rect x="3" y="3" width="8" height="8" rx="1.5" fill="white"/>
+            : <><rect x="5" y="1" width="4" height="7" rx="2" fill="var(--orange)"/><path d="M2.5 7.5C2.5 9.985 4.515 12 7 12C9.485 12 11.5 9.985 11.5 7.5" stroke="var(--orange)" strokeWidth="1.3" strokeLinecap="round" fill="none"/><line x1="7" y1="12" x2="7" y2="13.5" stroke="var(--orange)" strokeWidth="1.3" strokeLinecap="round"/></>
+          }
+        </svg>
+      </button>
+    )
+  }
 
   async function handleSendOTP() {
     if (!email.trim()) return
@@ -376,18 +380,22 @@ export default function Home() {
           <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Before anything else — think about a recent performance where you felt genuinely good. It doesn't need to have been your best result. Just a time where things were working.</p>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What was actually going well?</div>
-            <VoiceBtn setter={setReflection1} current={reflection1} />
-            <textarea value={reflection1} onChange={e => setReflection1(e.target.value)}
-              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-              placeholder="Say it however you'd explain it to someone you trust..." />
+            <div style={{ position: 'relative' }}>
+              <textarea value={reflection1} onChange={e => setReflection1(e.target.value)}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it however you'd explain it to someone you trust..." />
+              <VoiceBtn btnKey="reflection1" setter={setReflection1} current={reflection1} />
+            </div>
           </div>
           {reflection1.trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
               <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.7, marginBottom: 12 }}>Now think about a performance where you weren't quite yourself. What felt different?</p>
-              <VoiceBtn setter={setReflection2} current={reflection2} />
-              <textarea value={reflection2} onChange={e => setReflection2(e.target.value)}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="No need to pull it apart. Just notice what changed..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={reflection2} onChange={e => setReflection2(e.target.value)}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="No need to pull it apart. Just notice what changed..." />
+                <VoiceBtn btnKey="reflection2" setter={setReflection2} current={reflection2} />
+              </div>
             </div>
           )}
           <button onClick={handleSaveReflections} disabled={reflection1.trim().length < 10}
@@ -456,10 +464,12 @@ export default function Home() {
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [field.key]: v }))} current={myEdge[field.key] || ''} />
-              <textarea value={myEdge[field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [field.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Say it in your own words..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [field.key]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Say it in your own words..." />
+                <VoiceBtn btnKey={field.key} setter={(v) => setMyEdge(prev => ({ ...prev, [field.key]: v }))} current={myEdge[field.key] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -554,10 +564,12 @@ export default function Home() {
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
-              <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Speak or write here..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Speak or write here..." />
+                <VoiceBtn btnKey={q.key} setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -589,10 +601,12 @@ export default function Home() {
             <>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>What did they say about when you're at your best?</div>
-                <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, sb_response: v }))} current={myEdge.sb_response || ''} />
-                <textarea value={myEdge.sb_response || ''} onChange={e => setMyEdge(prev => ({ ...prev, sb_response: e.target.value }))}
-                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                  placeholder="What they noticed..." />
+                <div style={{ position: 'relative' }}>
+                  <textarea value={myEdge.sb_response || ''} onChange={e => setMyEdge(prev => ({ ...prev, sb_response: e.target.value }))}
+                    style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 80, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                    placeholder="What they noticed..." />
+                  <VoiceBtn btnKey="sb_response" setter={(v) => setMyEdge(prev => ({ ...prev, sb_response: v }))} current={myEdge.sb_response || ''} />
+                </div>
               </div>
               <button onClick={async () => {
                 if (myEdge.sb_response?.trim()) await saveReflection(athleteId, 1, 'sounding_board', myEdge.sb_response.trim())
@@ -677,18 +691,22 @@ export default function Home() {
           <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think of something you already do well in games. How do you practise that during the week?</p>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What is something you already do well in games — and where does it get practised during the week?</div>
-            <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w2_r1: v }))} current={myEdge.w2_r1 || ''} />
-            <textarea value={myEdge.w2_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r1: e.target.value }))}
-              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-              placeholder="Say it however you'd explain it to someone you trust..." />
+            <div style={{ position: 'relative' }}>
+              <textarea value={myEdge.w2_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r1: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it however you'd explain it to someone you trust..." />
+              <VoiceBtn btnKey="w2_r1" setter={(v) => setMyEdge(prev => ({ ...prev, w2_r1: v }))} current={myEdge.w2_r1 || ''} />
+            </div>
           </div>
           {(myEdge.w2_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What is one behaviour you would like to show more consistently in competition?</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w2_r2: v }))} current={myEdge.w2_r2 || ''} />
-              <textarea value={myEdge.w2_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r2: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="No need to overthink it. Just one thing..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge.w2_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w2_r2: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="No need to overthink it. Just one thing..." />
+                <VoiceBtn btnKey="w2_r2" setter={(v) => setMyEdge(prev => ({ ...prev, w2_r2: v }))} current={myEdge.w2_r2 || ''} />
+              </div>
             </div>
           )}
           <button onClick={async () => {
@@ -742,10 +760,12 @@ export default function Home() {
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: v }))} current={myEdge[`ti_${field.key}`] || ''} />
-              <textarea value={myEdge[`ti_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Say it in your own words..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[`ti_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Say it in your own words..." />
+                <VoiceBtn btnKey={`ti_${field.key}`} setter={(v) => setMyEdge(prev => ({ ...prev, [`ti_${field.key}`]: v }))} current={myEdge[`ti_${field.key}`] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -844,10 +864,12 @@ export default function Home() {
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
-              <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Speak or write here..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Speak or write here..." />
+                <VoiceBtn btnKey={q.key} setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -916,18 +938,22 @@ export default function Home() {
           <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think about a game where you felt really useful to your team. Not the game where you got the most recognition — just a game where you felt like you were genuinely helping.</p>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What were you actually doing?</div>
-            <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w3_r1: v }))} current={myEdge.w3_r1 || ''} />
-            <textarea value={myEdge.w3_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r1: e.target.value }))}
-              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-              placeholder="Say it however you'd explain it to someone you trust..." />
+            <div style={{ position: 'relative' }}>
+              <textarea value={myEdge.w3_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r1: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it however you'd explain it to someone you trust..." />
+              <VoiceBtn btnKey="w3_r1" setter={(v) => setMyEdge(prev => ({ ...prev, w3_r1: v }))} current={myEdge.w3_r1 || ''} />
+            </div>
           </div>
           {(myEdge.w3_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>When things become difficult, does that contribution stay the same or change?</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w3_r2: v }))} current={myEdge.w3_r2 || ''} />
-              <textarea value={myEdge.w3_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r2: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="No need to pull it apart. Just notice what changes..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge.w3_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w3_r2: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="No need to pull it apart. Just notice what changes..." />
+                <VoiceBtn btnKey="w3_r2" setter={(v) => setMyEdge(prev => ({ ...prev, w3_r2: v }))} current={myEdge.w3_r2 || ''} />
+              </div>
             </div>
           )}
           <button onClick={async () => {
@@ -982,10 +1008,12 @@ export default function Home() {
           ].map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, fontWeight: 400, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.5 }}>{field.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: v }))} current={myEdge[`pyp_${field.key}`] || ''} />
-              <textarea value={myEdge[`pyp_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Say it in your own words..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[`pyp_${field.key}`] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Say it in your own words..." />
+                <VoiceBtn btnKey={`pyp_${field.key}`} setter={(v) => setMyEdge(prev => ({ ...prev, [`pyp_${field.key}`]: v }))} current={myEdge[`pyp_${field.key}`] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -1084,10 +1112,12 @@ export default function Home() {
           ].map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 10, lineHeight: 1.4 }}>{q.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
-              <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Speak or write here..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Speak or write here..." />
+                <VoiceBtn btnKey={q.key} setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -1157,18 +1187,22 @@ export default function Home() {
           <p style={{ fontSize: 13, fontWeight: 300, color: 'var(--ink3)', lineHeight: 1.8, marginBottom: 32 }}>Think about a time when you felt completely in the game. You were not forcing things. You were just playing.</p>
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>What was happening? Where was your attention?</div>
-            <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r1: v }))} current={myEdge.w4_r1 || ''} />
-            <textarea value={myEdge.w4_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r1: e.target.value }))}
-              style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-              placeholder="Say it however you would explain it to someone you trust..." />
+            <div style={{ position: 'relative' }}>
+              <textarea value={myEdge.w4_r1 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r1: e.target.value }))}
+                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                placeholder="Say it however you would explain it to someone you trust..." />
+              <VoiceBtn btnKey="w4_r1" setter={(v) => setMyEdge(prev => ({ ...prev, w4_r1: v }))} current={myEdge.w4_r1 || ''} />
+            </div>
           </div>
           {(myEdge.w4_r1 || '').trim().length > 10 && (
             <div style={{ marginBottom: 28 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 16, fontWeight: 500, color: 'var(--ink)', marginBottom: 12 }}>Now think about a time when a mistake or the result pulled you away from that feeling. What happened next?</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, w4_r2: v }))} current={myEdge.w4_r2 || ''} />
-              <textarea value={myEdge.w4_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r2: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="No need to pull it apart. Just notice what happened..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge.w4_r2 || ''} onChange={e => setMyEdge(prev => ({ ...prev, w4_r2: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '14px 44px 14px 16px', fontFamily: 'Barlow', fontSize: 14, fontWeight: 300, lineHeight: 1.7, resize: 'none', minHeight: 90, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="No need to pull it apart. Just notice what happened..." />
+                <VoiceBtn btnKey="w4_r2" setter={(v) => setMyEdge(prev => ({ ...prev, w4_r2: v }))} current={myEdge.w4_r2 || ''} />
+              </div>
             </div>
           )}
           <button onClick={async () => {
@@ -1221,10 +1255,12 @@ export default function Home() {
           {pfFields.map(field => (
             <div key={field.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 14, color: 'var(--ink)', marginBottom: 8 }}>{field.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: v }))} current={myEdge['pf_' + field.key] || ''} />
-              <textarea value={myEdge['pf_' + field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: e.target.value }))}
-                style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
-                placeholder="Say it in your own words..." />
+              <div style={{ position: 'relative' }}>
+                <textarea value={myEdge['pf_' + field.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: e.target.value }))}
+                  style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 44px 12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
+                  placeholder="Say it in your own words..." />
+                <VoiceBtn btnKey={'pf_' + field.key} setter={(v) => setMyEdge(prev => ({ ...prev, ['pf_' + field.key]: v }))} current={myEdge['pf_' + field.key] || ''} />
+              </div>
             </div>
           ))}
           <button onClick={async () => {
@@ -1310,7 +1346,7 @@ export default function Home() {
           {w4evQs.map(q => (
             <div key={q.key} style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'Barlow Condensed', fontSize: 15, color: 'var(--ink)', marginBottom: 8 }}>{q.label}</div>
-              <VoiceBtn setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
+              <VoiceBtn btnKey={q.key} setter={(v) => setMyEdge(prev => ({ ...prev, [q.key]: v }))} current={myEdge[q.key] || ''} />
               <textarea value={myEdge[q.key] || ''} onChange={e => setMyEdge(prev => ({ ...prev, [q.key]: e.target.value }))}
                 style={{ width: '100%', background: 'var(--white)', border: '1px solid var(--cream3)', borderRadius: 8, padding: '12px 14px', fontFamily: 'Barlow', fontSize: 14, resize: 'none', minHeight: 88, outline: 'none', color: 'var(--ink)', display: 'block', boxSizing: 'border-box' }}
                 placeholder="Speak or write here..." />
